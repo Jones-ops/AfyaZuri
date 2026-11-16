@@ -13,7 +13,12 @@ import { accessibleFacilities } from '../auth/repository.js';
  * @typedef {{db: import('knex').Knex, bus: import('../../lib/events.js').EventBus}} Deps
  */
 
-const actorOf = (/** @type {AuthContext} */ a) => ({ userId: a.userId, username: a.username, roles: a.roles, facilityId: a.facilityId });
+const actorOf = (/** @type {AuthContext} */ a) => ({
+  userId: a.userId,
+  username: a.username,
+  roles: a.roles,
+  facilityId: a.facilityId,
+});
 
 /**
  * Insert a row with audit columns and an audit entry, in one transaction.
@@ -22,9 +27,14 @@ const actorOf = (/** @type {AuthContext} */ a) => ({ userId: a.userId, username:
  */
 async function auditedInsert({ db }, auth, meta, table, entityType, values) {
   return db.transaction(async (trx) => {
-    const [row] = await trx(table).insert({ ...values, created_by: auth.userId, updated_by: auth.userId }).returning('*');
+    const [row] = await trx(table)
+      .insert({ ...values, created_by: auth.userId, updated_by: auth.userId })
+      .returning('*');
     await recordAudit(trx, actorOf(auth), meta, {
-      action: 'create', entityType, entityId: row.id, after: row,
+      action: 'create',
+      entityType,
+      entityId: row.id,
+      after: row,
       facilityId: row.facility_id ?? (table === 'facilities' ? row.id : auth.facilityId),
     });
     return row;
@@ -42,7 +52,10 @@ async function auditedUpdate({ db }, auth, meta, table, entityType, id, patch) {
     const before = await trx(table).where({ id, facility_id: auth.facilityId }).forUpdate().first();
     if (!before) throw notFound(entityType.replace(/_/g, ' '));
     if (!Object.keys(patch).length) return before;
-    const [after] = await trx(table).where({ id }).update({ ...patch, updated_by: auth.userId }).returning('*');
+    const [after] = await trx(table)
+      .where({ id })
+      .update({ ...patch, updated_by: auth.userId })
+      .returning('*');
     await recordAudit(trx, actorOf(auth), meta, { action: 'update', entityType, entityId: id, before, after });
     return after;
   });
@@ -77,7 +90,13 @@ export async function createFacility(deps, auth, input, meta) {
   if (!hasGlobalPermission(auth.grants, 'facilities.manage'))
     throw forbidden('Only a deployment administrator can add facilities');
   const row = await auditedInsert(deps, auth, meta, 'facilities', 'facility', snake(input));
-  await deps.bus.publish(deps.db, { type: 'facility.created', aggregateType: 'facility', aggregateId: row.id, facilityId: row.id, payload: { name: row.name } });
+  await deps.bus.publish(deps.db, {
+    type: 'facility.created',
+    aggregateType: 'facility',
+    aggregateId: row.id,
+    facilityId: row.id,
+    payload: { name: row.name },
+  });
   return facilityOut(row);
 }
 
@@ -88,8 +107,18 @@ export async function updateFacility({ db }, auth, id, input, meta) {
   return db.transaction(async (trx) => {
     const before = await trx('facilities').where({ id }).forUpdate().first();
     if (!before) throw notFound('Facility');
-    const [after] = await trx('facilities').where({ id }).update({ ...snake(input), updated_by: auth.userId }).returning('*');
-    await recordAudit(trx, actorOf(auth), meta, { action: 'update', entityType: 'facility', entityId: id, before, after, facilityId: id });
+    const [after] = await trx('facilities')
+      .where({ id })
+      .update({ ...snake(input), updated_by: auth.userId })
+      .returning('*');
+    await recordAudit(trx, actorOf(auth), meta, {
+      action: 'update',
+      entityType: 'facility',
+      entityId: id,
+      before,
+      after,
+      facilityId: id,
+    });
     return facilityOut(after);
   });
 }
@@ -102,7 +131,12 @@ export async function listDepartments({ db }, auth) {
 }
 /** @param {Deps} deps @param {AuthContext} auth @param {Record<string, any>} input @param {Meta} meta */
 export const createDepartment = async (deps, auth, input, meta) =>
-  camel(await auditedInsert(deps, auth, meta, 'departments', 'department', { ...snake(input), facility_id: auth.facilityId }));
+  camel(
+    await auditedInsert(deps, auth, meta, 'departments', 'department', {
+      ...snake(input),
+      facility_id: auth.facilityId,
+    }),
+  );
 /** @param {Deps} deps @param {AuthContext} auth @param {string} id @param {Record<string, any>} input @param {Meta} meta */
 export const updateDepartment = async (deps, auth, id, input, meta) =>
   camel(await auditedUpdate(deps, auth, meta, 'departments', 'department', id, snake(input)));
@@ -111,14 +145,22 @@ export const updateDepartment = async (deps, auth, id, input, meta) =>
 
 /** @param {Deps} deps @param {AuthContext} auth */
 export async function listServicePoints({ db }, auth) {
-  const rows = await db('service_points as sp').join('departments as d', 'd.id', 'sp.department_id')
-    .where('sp.facility_id', auth.facilityId).orderBy('sp.name').select('sp.*', 'd.name as department_name');
+  const rows = await db('service_points as sp')
+    .join('departments as d', 'd.id', 'sp.department_id')
+    .where('sp.facility_id', auth.facilityId)
+    .orderBy('sp.name')
+    .select('sp.*', 'd.name as department_name');
   return rows.map((r) => camel(r));
 }
 /** @param {Deps} deps @param {AuthContext} auth @param {Record<string, any>} input @param {Meta} meta */
 export async function createServicePoint(deps, auth, input, meta) {
   await assertDepartment(deps.db, auth, input.departmentId);
-  return camel(await auditedInsert(deps, auth, meta, 'service_points', 'service_point', { ...snake(input), facility_id: auth.facilityId }));
+  return camel(
+    await auditedInsert(deps, auth, meta, 'service_points', 'service_point', {
+      ...snake(input),
+      facility_id: auth.facilityId,
+    }),
+  );
 }
 /** @param {Deps} deps @param {AuthContext} auth @param {string} id @param {Record<string, any>} input @param {Meta} meta */
 export async function updateServicePoint(deps, auth, id, input, meta) {
@@ -136,16 +178,21 @@ export async function listWards({ db }, auth) {
     .where('w.facility_id', auth.facilityId)
     .groupBy('w.id', 'd.name')
     .orderBy('w.name')
-    .select('w.*', 'd.name as department_name',
+    .select(
+      'w.*',
+      'd.name as department_name',
       db.raw(`count(b.id)::int AS bed_count`),
       db.raw(`count(b.id) FILTER (WHERE b.status = 'available')::int AS available`),
-      db.raw(`count(b.id) FILTER (WHERE b.status = 'occupied')::int AS occupied`));
+      db.raw(`count(b.id) FILTER (WHERE b.status = 'occupied')::int AS occupied`),
+    );
   return rows.map((r) => camel(r));
 }
 /** @param {Deps} deps @param {AuthContext} auth @param {Record<string, any>} input @param {Meta} meta */
 export async function createWard(deps, auth, input, meta) {
   await assertDepartment(deps.db, auth, input.departmentId);
-  return camel(await auditedInsert(deps, auth, meta, 'wards', 'ward', { ...snake(input), facility_id: auth.facilityId }));
+  return camel(
+    await auditedInsert(deps, auth, meta, 'wards', 'ward', { ...snake(input), facility_id: auth.facilityId }),
+  );
 }
 /** @param {Deps} deps @param {AuthContext} auth @param {string} id @param {Record<string, any>} input @param {Meta} meta */
 export async function updateWard(deps, auth, id, input, meta) {
@@ -165,7 +212,13 @@ export async function createBed(deps, auth, wardId, input, meta) {
   const ward = await deps.db('wards').where({ id: wardId, facility_id: auth.facilityId }).first('id');
   if (!ward) throw notFound('Ward');
   if (input.status === 'occupied') throw badRequest('A new bed cannot start as occupied');
-  return camel(await auditedInsert(deps, auth, meta, 'beds', 'bed', { ...snake(input), ward_id: wardId, facility_id: auth.facilityId }));
+  return camel(
+    await auditedInsert(deps, auth, meta, 'beds', 'bed', {
+      ...snake(input),
+      ward_id: wardId,
+      facility_id: auth.facilityId,
+    }),
+  );
 }
 
 /**
@@ -174,8 +227,10 @@ export async function createBed(deps, auth, wardId, input, meta) {
  * @param {Deps} deps @param {AuthContext} auth @param {string} id @param {string} status @param {Meta} meta
  */
 export async function setBedStatus(deps, auth, id, status, meta) {
-  if (!hasPermission(auth.grants, 'facilities.manage', { facilityId: auth.facilityId })
-      && !hasPermission(auth.grants, 'ipd.beds.manage', { facilityId: auth.facilityId }))
+  if (
+    !hasPermission(auth.grants, 'facilities.manage', { facilityId: auth.facilityId }) &&
+    !hasPermission(auth.grants, 'ipd.beds.manage', { facilityId: auth.facilityId })
+  )
     throw forbidden();
   if (status === 'occupied') throw badRequest('Beds become occupied through an admission');
   const bed = await deps.db('beds').where({ id, facility_id: auth.facilityId }).first('status');
@@ -202,12 +257,27 @@ export async function putSetting({ db }, auth, key, value, meta) {
     const before = await trx('system_settings').where({ facility_id: auth.facilityId, key }).first();
     let after;
     if (before)
-      [after] = await trx('system_settings').where({ id: before.id }).update({ value: JSON.stringify(value), updated_by: auth.userId }).returning('*');
+      [after] = await trx('system_settings')
+        .where({ id: before.id })
+        .update({ value: JSON.stringify(value), updated_by: auth.userId })
+        .returning('*');
     else
       [after] = await trx('system_settings')
-        .insert({ facility_id: auth.facilityId, key, value: JSON.stringify(value), created_by: auth.userId, updated_by: auth.userId })
+        .insert({
+          facility_id: auth.facilityId,
+          key,
+          value: JSON.stringify(value),
+          created_by: auth.userId,
+          updated_by: auth.userId,
+        })
         .returning('*');
-    await recordAudit(trx, actorOf(auth), meta, { action: before ? 'update' : 'create', entityType: 'setting', entityId: key, before, after });
+    await recordAudit(trx, actorOf(auth), meta, {
+      action: before ? 'update' : 'create',
+      entityType: 'setting',
+      entityId: key,
+      before,
+      after,
+    });
     return { key, value: after.value };
   });
 }

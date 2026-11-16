@@ -14,8 +14,13 @@ beforeAll(async () => {
 afterAll(() => ctx.db.destroy());
 
 const newUser = (roles, extra = {}) => ({
-  username: uniq('staff'), fullName: 'Wanjiku Test', password: STRONG, licenceBody: 'NCK', licenceNumber: 'NCK-1',
-  roles, ...extra,
+  username: uniq('staff'),
+  fullName: 'Wanjiku Test',
+  password: STRONG,
+  licenceBody: 'NCK',
+  licenceNumber: 'NCK-1',
+  roles,
+  ...extra,
 });
 
 describe('user administration', () => {
@@ -48,18 +53,30 @@ describe('user administration', () => {
     expect(res.body.licenceBody).toBe('NCK');
     expect(res.body.mustChangePassword).toBe(true);
 
-    const entry = await ctx.db('audit_log').where({ entity_type: 'user', entity_id: res.body.id, action: 'create' }).first();
+    const entry = await ctx
+      .db('audit_log')
+      .where({ entity_type: 'user', entity_id: res.body.id, action: 'create' })
+      .first();
     expect(entry.actor_username).toBe('facadmin');
     expect(entry.after.password_hash).toBe('[redacted]');
     expect(JSON.stringify(entry)).not.toContain('$argon2');
   });
 
   it('stops facility admins from escalating or reaching other facilities', async () => {
-    const sa = await facadmin.post('/api/v1/users', newUser([{ role: 'super_admin', facilityId: main.id, departmentId: null }]));
+    const sa = await facadmin.post(
+      '/api/v1/users',
+      newUser([{ role: 'super_admin', facilityId: main.id, departmentId: null }]),
+    );
     expect(sa.status).toBe(403);
-    const other = await facadmin.post('/api/v1/users', newUser([{ role: 'doctor', facilityId: hc.id, departmentId: null }]));
+    const other = await facadmin.post(
+      '/api/v1/users',
+      newUser([{ role: 'doctor', facilityId: hc.id, departmentId: null }]),
+    );
     expect(other.status).toBe(403);
-    const global = await facadmin.post('/api/v1/users', newUser([{ role: 'doctor', facilityId: null, departmentId: null }]));
+    const global = await facadmin.post(
+      '/api/v1/users',
+      newUser([{ role: 'doctor', facilityId: null, departmentId: null }]),
+    );
     expect(global.status).toBe(403);
     const adminUser = await ctx.db('users').where({ username: 'admin' }).first('id');
     expect((await facadmin.post(`/api/v1/users/${adminUser.id}/disable`, { reason: 'try it' })).status).toBe(404);
@@ -67,20 +84,32 @@ describe('user administration', () => {
 
   it('rejects a department from another facility', async () => {
     const hcLab = await ctx.db('departments').where({ facility_id: hc.id, code: 'LAB' }).first('id');
-    const res = await facadmin.post('/api/v1/users', newUser([{ role: 'lab_technologist', facilityId: main.id, departmentId: hcLab.id }]));
+    const res = await facadmin.post(
+      '/api/v1/users',
+      newUser([{ role: 'lab_technologist', facilityId: main.id, departmentId: hcLab.id }]),
+    );
     expect(res.status).toBe(400);
   });
 
   it('enforces the password policy and unique usernames', async () => {
-    const weak = await facadmin.post('/api/v1/users', newUser([{ role: 'cashier', facilityId: main.id, departmentId: null }], { password: 'password12' }));
+    const weak = await facadmin.post(
+      '/api/v1/users',
+      newUser([{ role: 'cashier', facilityId: main.id, departmentId: null }], { password: 'password12' }),
+    );
     expect(weak.body.error.code).toBe('WEAK_PASSWORD');
-    const dup = await facadmin.post('/api/v1/users', newUser([{ role: 'cashier', facilityId: main.id, departmentId: null }], { username: 'doctor' }));
+    const dup = await facadmin.post(
+      '/api/v1/users',
+      newUser([{ role: 'cashier', facilityId: main.id, departmentId: null }], { username: 'doctor' }),
+    );
     expect(dup.status).toBe(409);
   });
 
   it('denies user management to roles without the permission', async () => {
     const cashier = await signIn(ctx.app, 'cashier');
-    const res = await cashier.post('/api/v1/users', newUser([{ role: 'cashier', facilityId: main.id, departmentId: null }]));
+    const res = await cashier.post(
+      '/api/v1/users',
+      newUser([{ role: 'cashier', facilityId: main.id, departmentId: null }]),
+    );
     expect(res.status).toBe(403);
     expect(res.body.error.details.required).toEqual(['users.manage']);
     expect((await cashier.get('/api/v1/users')).status).toBe(403);
@@ -101,7 +130,10 @@ describe('user administration', () => {
   });
 
   it('replaces roles, edits profile, force-logs-out and resets passwords', async () => {
-    const created = await facadmin.post('/api/v1/users', newUser([{ role: 'cashier', facilityId: main.id, departmentId: null }], { mustChangePassword: false }));
+    const created = await facadmin.post(
+      '/api/v1/users',
+      newUser([{ role: 'cashier', facilityId: main.id, departmentId: null }], { mustChangePassword: false }),
+    );
     const id = created.body.id;
     const bill = await ctx.db('departments').where({ facility_id: main.id, code: 'BILL' }).first('id');
 
@@ -112,14 +144,20 @@ describe('user administration', () => {
 
     const patched = await facadmin.patch(`/api/v1/users/${id}`, { fullName: 'Renamed Person', phone: '0712 000 111' });
     expect(patched.body).toMatchObject({ fullName: 'Renamed Person', phone: '+254712000111' });
-    const audit = await ctx.db('audit_log').where({ entity_id: id, action: 'update', entity_type: 'user' }).orderBy('id', 'desc').first();
+    const audit = await ctx
+      .db('audit_log')
+      .where({ entity_id: id, action: 'update', entity_type: 'user' })
+      .orderBy('id', 'desc')
+      .first();
     expect(audit.changes.full_name).toEqual({ from: 'Wanjiku Test', to: 'Renamed Person' });
 
     const session = await signIn(ctx.app, created.body.username, STRONG);
     expect((await facadmin.post(`/api/v1/users/${id}/force-logout`)).body.sessionsEnded).toBe(1);
     expect((await session.get('/api/v1/auth/me')).status).toBe(401);
 
-    expect((await facadmin.post(`/api/v1/users/${id}/reset-password`, { password: 'Res3t!Password' })).status).toBe(200);
+    expect((await facadmin.post(`/api/v1/users/${id}/reset-password`, { password: 'Res3t!Password' })).status).toBe(
+      200,
+    );
     const after = await signIn(ctx.app, created.body.username, 'Res3t!Password');
     expect((await after.get('/api/v1/auth/me')).body.user.mustChangePassword).toBe(true);
   });

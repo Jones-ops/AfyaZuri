@@ -1,7 +1,11 @@
 // Kenyan admin units, facilities, departments, service points, wards, beds, settings.
 import { AUDIT_COLS, inList, touch } from '../helpers.js';
 import {
-  BED_STATUS, DEPARTMENT_TYPES, FACILITY_LEVELS, FACILITY_OWNERSHIP, SERVICE_POINT_TYPES,
+  BED_STATUS,
+  DEPARTMENT_TYPES,
+  FACILITY_LEVELS,
+  FACILITY_OWNERSHIP,
+  SERVICE_POINT_TYPES,
 } from '../../packages/shared/src/enums.js';
 
 /** @param {import('knex').Knex} knex */

@@ -11,8 +11,8 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['icon.svg'],
       manifest: {
-        name: 'AfyaZuri Hospital Management',
-        short_name: 'AfyaZuri',
+        name: 'Afyazuri Hospital Management',
+        short_name: 'Afyazuri',
         description: 'Every department on one system — registration through to claims.',
         theme_color: '#0f766e',
         background_color: '#f8fafc',

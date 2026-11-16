@@ -16,8 +16,12 @@ async function createUser(role = 'cashier', extra = {}) {
   const facility = await ctx.db('facilities').where({ kmhfl_code: '99001' }).first('id');
   const username = uniq('u');
   const res = await admin.post('/api/v1/users', {
-    username, fullName: 'Test User', password: STRONG, mustChangePassword: false,
-    roles: [{ role, facilityId: facility.id, departmentId: null }], ...extra,
+    username,
+    fullName: 'Test User',
+    password: STRONG,
+    mustChangePassword: false,
+    roles: [{ role, facilityId: facility.id, departmentId: null }],
+    ...extra,
   });
   expect(res.status, JSON.stringify(res.body)).toBe(201);
   return { username, id: res.body.id };
@@ -74,7 +78,9 @@ describe('login', () => {
   it('locks the account after 5 failures and an admin can unlock it', async () => {
     const { username, id } = await createUser();
     for (let i = 0; i < 5; i++)
-      expect((await client(ctx.app).post('/api/v1/auth/login', { username, password: 'Wrong!pass1' })).status).toBe(401);
+      expect((await client(ctx.app).post('/api/v1/auth/login', { username, password: 'Wrong!pass1' })).status).toBe(
+        401,
+      );
     const locked = await client(ctx.app).post('/api/v1/auth/login', { username, password: STRONG });
     expect(locked.status).toBe(423);
     expect(locked.body.error.code).toBe('ACCOUNT_LOCKED');
@@ -88,7 +94,9 @@ describe('login', () => {
     const limited = makeApp({ AUTH_RATE_LIMIT_PER_MIN: '3' });
     const statuses = [];
     for (let i = 0; i < 4; i++)
-      statuses.push((await client(limited.app).post('/api/v1/auth/login', { username: 'nobody', password: 'x' })).status);
+      statuses.push(
+        (await client(limited.app).post('/api/v1/auth/login', { username: 'nobody', password: 'x' })).status,
+      );
     expect(statuses).toEqual([401, 401, 401, 429]);
     await limited.db.destroy();
   });
@@ -111,7 +119,10 @@ describe('sessions', () => {
     expect(cookie(r1, 'az_rt')).not.toBe(firstRefresh);
     expect((await c.get('/api/v1/auth/me')).status).toBe(200);
 
-    const replay = await request(ctx.app).post('/api/v1/auth/refresh').set('X-AfyaZuri-Client', '1').set('Cookie', firstRefresh);
+    const replay = await request(ctx.app)
+      .post('/api/v1/auth/refresh')
+      .set('X-Afyazuri-Client', '1')
+      .set('Cookie', firstRefresh);
     expect(replay.status).toBe(401);
     expect(replay.body.error.code).toBe('REFRESH_TOKEN_REUSED');
     expect((await c.get('/api/v1/auth/me')).body.error.code).toBe('SESSION_ENDED');
@@ -121,7 +132,10 @@ describe('sessions', () => {
   it('signs out idle sessions', async () => {
     const c = await signIn(ctx.app, 'records');
     const me = await c.get('/api/v1/auth/me');
-    await ctx.db('sessions').where({ user_id: me.body.user.id }).whereNull('revoked_at')
+    await ctx
+      .db('sessions')
+      .where({ user_id: me.body.user.id })
+      .whereNull('revoked_at')
       .update({ last_seen_at: ctx.db.raw(`now() - interval '1 hour'`) });
     const res = await c.get('/api/v1/auth/me');
     expect(res.status).toBe(401);
@@ -132,6 +146,21 @@ describe('sessions', () => {
     const c = await signIn(ctx.app, 'cashier');
     expect((await c.post('/api/v1/auth/logout')).status).toBe(200);
     expect((await c.get('/api/v1/auth/me')).status).toBe(401);
+  });
+
+  it('lets a deployment admin sign in to a fresh installation with no facilities', async () => {
+    const active = await ctx.db('facilities').where({ active: true }).pluck('id');
+    await ctx.db('facilities').whereIn('id', active).update({ active: false });
+    try {
+      const c = await signIn(ctx.app, 'admin');
+      const me = await c.get('/api/v1/auth/me');
+      expect(me.body.facility).toBeNull();
+      expect(me.body.permissions).toContain('facilities.manage');
+      const doctor = await client(ctx.app).post('/api/v1/auth/login', { username: 'doctor', password: DEMO_PASSWORD });
+      expect(doctor.status).toBe(403);
+    } finally {
+      await ctx.db('facilities').whereIn('id', active).update({ active: true });
+    }
   });
 
   it('switches facility only to facilities the user can access', async () => {
@@ -168,16 +197,20 @@ describe('account state', () => {
     const { username } = await createUser('accountant');
     const c = await signIn(ctx.app, username, STRONG);
     const setup = await c.post('/api/v1/auth/totp/setup');
-    expect(setup.body.otpauthUrl).toMatch(/^otpauth:\/\/totp\/AfyaZuri:/);
+    expect(setup.body.otpauthUrl).toMatch(/^otpauth:\/\/totp\/Afyazuri:/);
     expect((await c.post('/api/v1/auth/totp/enable', { code: '000000' })).status).toBe(400);
-    expect((await c.post('/api/v1/auth/totp/enable', { code: authenticator.generate(setup.body.secret) })).status).toBe(200);
+    expect((await c.post('/api/v1/auth/totp/enable', { code: authenticator.generate(setup.body.secret) })).status).toBe(
+      200,
+    );
 
     const noCode = await client(ctx.app).post('/api/v1/auth/login', { username, password: STRONG });
     expect(noCode.body.error.code).toBe('MFA_REQUIRED');
     const badCode = await client(ctx.app).post('/api/v1/auth/login', { username, password: STRONG, totp: '123456' });
     expect(badCode.body.error.code).toBe('INVALID_TOTP');
     const good = await client(ctx.app).post('/api/v1/auth/login', {
-      username, password: STRONG, totp: authenticator.generate(setup.body.secret),
+      username,
+      password: STRONG,
+      totp: authenticator.generate(setup.body.secret),
     });
     expect(good.status).toBe(200);
 

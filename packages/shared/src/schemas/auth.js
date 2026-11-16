@@ -3,7 +3,10 @@ import { z } from 'zod';
 export const loginBody = z.object({
   username: z.string().trim().toLowerCase().min(3).max(64),
   password: z.string().min(1).max(256),
-  totp: z.string().regex(/^\d{6}$/).optional(),
+  totp: z
+    .string()
+    .regex(/^\d{6}$/)
+    .optional(),
   facilityId: z.string().uuid().optional(),
 });
 

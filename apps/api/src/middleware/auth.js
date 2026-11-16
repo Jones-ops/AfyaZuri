@@ -73,7 +73,9 @@ export function authenticate({ db, config }, opts = {}) {
     if (idleMs > 60_000) await db('sessions').where({ id: session.id }).update({ last_seen_at: db.fn.now() });
 
     const roles = [
-      ...new Set(grants.filter((g) => g.facilityId === null || g.facilityId === session.facility_id).map((g) => g.role)),
+      ...new Set(
+        grants.filter((g) => g.facilityId === null || g.facilityId === session.facility_id).map((g) => g.role),
+      ),
     ];
     /** @type {AuthContext} */
     req.auth = {

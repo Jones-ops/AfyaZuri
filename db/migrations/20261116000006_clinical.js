@@ -2,7 +2,11 @@
 // marked entered-in-error, and signed notes are locked (changes go into addenda).
 import { AUDIT_COLS, inList, syncable, touch } from '../helpers.js';
 import {
-  ALLERGY_CATEGORIES, ALLERGY_SEVERITY, ENCOUNTER_STATUS, ENCOUNTER_TYPES, NOTE_TYPES,
+  ALLERGY_CATEGORIES,
+  ALLERGY_SEVERITY,
+  ENCOUNTER_STATUS,
+  ENCOUNTER_TYPES,
+  NOTE_TYPES,
 } from '../../packages/shared/src/enums.js';
 
 const ERROR_COLS = `
@@ -237,8 +241,7 @@ export async function up(knex) {
   `);
   for (const t of ['encounters', 'clinical_notes', 'diagnoses', 'allergies', 'problem_list', 'procedures', 'referrals'])
     await touch(knex, t);
-  for (const t of ['encounters', 'triage_vitals', 'clinical_notes', 'diagnoses', 'allergies'])
-    await syncable(knex, t);
+  for (const t of ['encounters', 'triage_vitals', 'clinical_notes', 'diagnoses', 'allergies']) await syncable(knex, t);
 }
 
 /** @param {import('knex').Knex} knex */

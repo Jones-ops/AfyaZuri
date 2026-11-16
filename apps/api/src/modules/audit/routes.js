@@ -24,10 +24,24 @@ function auditFilter(db, auth, f) {
 }
 
 const out = (r) => ({
-  id: String(r.id), occurredAt: r.occurred_at, actorUserId: r.actor_user_id, actorUsername: r.actor_username,
-  actorRoles: r.actor_roles, facilityId: r.facility_id, action: r.action, entityType: r.entity_type,
-  entityId: r.entity_id, patientId: r.patient_id, changes: r.changes, before: r.before, after: r.after,
-  ip: r.ip, userAgent: r.user_agent, reason: r.reason, metadata: r.metadata, requestId: r.request_id,
+  id: String(r.id),
+  occurredAt: r.occurred_at,
+  actorUserId: r.actor_user_id,
+  actorUsername: r.actor_username,
+  actorRoles: r.actor_roles,
+  facilityId: r.facility_id,
+  action: r.action,
+  entityType: r.entity_type,
+  entityId: r.entity_id,
+  patientId: r.patient_id,
+  changes: r.changes,
+  before: r.before,
+  after: r.after,
+  ip: r.ip,
+  userAgent: r.user_agent,
+  reason: r.reason,
+  metadata: r.metadata,
+  requestId: r.request_id,
 });
 
 const csvCell = (v) => {
@@ -57,17 +71,36 @@ export function auditRoutes(deps) {
   r.get('/audit/export', requirePermission('audit.export'), validate({ query: auditQuery }), async (req, res) => {
     const f = req.valid.query;
     await recordAudit(db, actorOf(req), requestMeta(req), {
-      action: 'export', entityType: 'audit_log', metadata: { filters: { ...f, cursor: undefined, limit: undefined } },
+      action: 'export',
+      entityType: 'audit_log',
+      metadata: { filters: { ...f, cursor: undefined, limit: undefined } },
     });
-    const cols = ['id', 'occurred_at', 'actor_username', 'actor_user_id', 'actor_roles', 'facility_id', 'action',
-      'entity_type', 'entity_id', 'patient_id', 'reason', 'ip', 'user_agent', 'changes', 'metadata', 'request_id'];
+    const cols = [
+      'id',
+      'occurred_at',
+      'actor_username',
+      'actor_user_id',
+      'actor_roles',
+      'facility_id',
+      'action',
+      'entity_type',
+      'entity_id',
+      'patient_id',
+      'reason',
+      'ip',
+      'user_agent',
+      'changes',
+      'metadata',
+      'request_id',
+    ];
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="audit-${new Date().toISOString().slice(0, 10)}.csv"`);
     res.write(`${cols.join(',')}\n`);
     const stream = auditFilter(db, req.auth, f).orderBy('id', 'desc').limit(100_000).select(cols).stream();
     try {
       for await (const row of stream) {
-        if (!res.write(`${cols.map((c) => csvCell(row[c])).join(',')}\n`)) await new Promise((ok) => res.once('drain', ok));
+        if (!res.write(`${cols.map((c) => csvCell(row[c])).join(',')}\n`))
+          await new Promise((ok) => res.once('drain', ok));
       }
       res.end();
     } catch (err) {

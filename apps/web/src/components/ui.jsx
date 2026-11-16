@@ -8,7 +8,12 @@ export function Field({ label, error, hint, children, required }) {
     <div>
       <label htmlFor={id} className="label">
         {label}
-        {required && <span className="text-red-700" aria-hidden> *</span>}
+        {required && (
+          <span className="text-red-700" aria-hidden>
+            {' '}
+            *
+          </span>
+        )}
       </label>
       {cloneElement(children, { id, 'aria-invalid': error ? true : undefined, 'aria-describedby': describedBy })}
       {hint && !error && (
@@ -103,8 +108,16 @@ export function Badge({ tone = 'slate', children }) {
     blue: 'bg-sky-100 text-sky-800',
     teal: 'bg-brand-100 text-brand-900',
   };
-  return <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${tones[tone]}`}>{children}</span>;
+  return (
+    <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${tones[tone]}`}>
+      {children}
+    </span>
+  );
 }
 
 export const formatDateTime = (v) =>
-  v ? new Intl.DateTimeFormat('en-KE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Africa/Nairobi' }).format(new Date(v)) : '—';
+  v
+    ? new Intl.DateTimeFormat('en-KE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Africa/Nairobi' }).format(
+        new Date(v),
+      )
+    : '—';

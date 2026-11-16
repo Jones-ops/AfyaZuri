@@ -1,6 +1,11 @@
 /** Fields never written to the audit log, even as before/after values. */
 const SECRET_FIELDS = new Set([
-  'password_hash', 'totp_secret_enc', 'token_hash', 'phone_enc', 'value_enc', 'next_of_kin_phone_enc',
+  'password_hash',
+  'totp_secret_enc',
+  'token_hash',
+  'phone_enc',
+  'value_enc',
+  'next_of_kin_phone_enc',
 ]);
 
 /**

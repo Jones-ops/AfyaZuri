@@ -1,4 +1,7 @@
+import { copyFile, mkdir } from 'node:fs/promises';
+import { basename, join } from 'node:path';
 import PgBoss from 'pg-boss';
+import { createBackup, pruneBackups, verifyBackup } from './ops/backup.js';
 
 /**
  * Background work.
@@ -15,8 +18,13 @@ export async function startJobs({ db, config, logger, bus }) {
     'sessions.cleanup': async () => {
       // Remove refresh tokens of sessions that ended more than 30 days ago.
       const n = await db('refresh_tokens')
-        .whereIn('session_id', db('sessions').where('expires_at', '<', db.raw(`now() - interval '30 days'`))
-          .orWhere('revoked_at', '<', db.raw(`now() - interval '30 days'`)).select('id'))
+        .whereIn(
+          'session_id',
+          db('sessions')
+            .where('expires_at', '<', db.raw(`now() - interval '30 days'`))
+            .orWhere('revoked_at', '<', db.raw(`now() - interval '30 days'`))
+            .select('id'),
+        )
         .delete();
       logger.info({ removed: n }, 'sessions.cleanup');
     },
@@ -25,12 +33,37 @@ export async function startJobs({ db, config, logger, bus }) {
       logger.info({ removed: n }, 'idempotency.cleanup');
     },
   };
+  const backupsOn = Boolean(config.BACKUP_KEY && config.BACKUP_DIR);
+  if (backupsOn) {
+    jobs['backup.nightly'] = async () => {
+      const policy = {
+        daily: config.BACKUP_KEEP_DAILY,
+        weekly: config.BACKUP_KEEP_WEEKLY,
+        monthly: config.BACKUP_KEEP_MONTHLY,
+      };
+      const r = await createBackup({ db, key: config.BACKUP_KEY, dir: config.BACKUP_DIR });
+      await verifyBackup(r.file, config.BACKUP_KEY);
+      const pruned = await pruneBackups(config.BACKUP_DIR, policy);
+      if (config.BACKUP_OFFSITE_DIR) {
+        await mkdir(config.BACKUP_OFFSITE_DIR, { recursive: true });
+        await copyFile(r.file, join(config.BACKUP_OFFSITE_DIR, basename(r.file)));
+        await pruneBackups(config.BACKUP_OFFSITE_DIR, policy);
+      }
+      logger.info(
+        { file: basename(r.file), bytes: r.bytes, rows: r.rows, pruned: pruned.length },
+        'backup.nightly complete',
+      );
+    };
+  }
+
   for (const [name, handler] of Object.entries(jobs)) {
     await boss.createQueue(name);
     await boss.work(name, handler);
   }
   await boss.schedule('sessions.cleanup', '15 3 * * *', {}, { tz: 'Africa/Nairobi' });
   await boss.schedule('idempotency.cleanup', '30 3 * * *', {}, { tz: 'Africa/Nairobi' });
+  if (backupsOn) await boss.schedule('backup.nightly', config.BACKUP_CRON, {}, { tz: 'Africa/Nairobi' });
+  else await boss.unschedule('backup.nightly').catch(() => {});
 
   let stopped = false;
   const loop = async () => {

@@ -2,6 +2,8 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
+    // Integration files share one database, so files run one at a time (unit tests are fast either way).
+    fileParallelism: false,
     projects: [
       {
         test: {

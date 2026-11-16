@@ -12,22 +12,55 @@ import { revokeUserSessions } from '../auth/repository.js';
  */
 
 const PUBLIC_COLS = [
-  'id', 'username', 'full_name', 'email', 'phone', 'status', 'must_change_password', 'failed_login_count',
-  'locked_until', 'last_login_at', 'totp_enabled', 'licence_body', 'licence_number', 'cadre',
-  'default_facility_id', 'disabled_at', 'disabled_reason', 'created_at', 'updated_at',
+  'id',
+  'username',
+  'full_name',
+  'email',
+  'phone',
+  'status',
+  'must_change_password',
+  'failed_login_count',
+  'locked_until',
+  'last_login_at',
+  'totp_enabled',
+  'licence_body',
+  'licence_number',
+  'cadre',
+  'default_facility_id',
+  'disabled_at',
+  'disabled_reason',
+  'created_at',
+  'updated_at',
 ];
 
 /** @param {any} u @param {any[]} [roles] */
 export const toUser = (u, roles) => ({
-  id: u.id, username: u.username, fullName: u.full_name, email: u.email, phone: u.phone, status: u.status,
-  mustChangePassword: u.must_change_password, locked: !!(u.locked_until && u.locked_until > new Date()),
-  lastLoginAt: u.last_login_at, totpEnabled: u.totp_enabled, licenceBody: u.licence_body,
-  licenceNumber: u.licence_number, cadre: u.cadre, disabledAt: u.disabled_at, disabledReason: u.disabled_reason,
-  createdAt: u.created_at, ...(roles ? { roles } : {}),
+  id: u.id,
+  username: u.username,
+  fullName: u.full_name,
+  email: u.email,
+  phone: u.phone,
+  status: u.status,
+  mustChangePassword: u.must_change_password,
+  locked: !!(u.locked_until && u.locked_until > new Date()),
+  lastLoginAt: u.last_login_at,
+  totpEnabled: u.totp_enabled,
+  licenceBody: u.licence_body,
+  licenceNumber: u.licence_number,
+  cadre: u.cadre,
+  disabledAt: u.disabled_at,
+  disabledReason: u.disabled_reason,
+  createdAt: u.created_at,
+  ...(roles ? { roles } : {}),
 });
 
 const isGlobalAdmin = (/** @type {AuthContext} */ auth) => hasGlobalPermission(auth.grants, 'users.manage');
-const actorOf = (/** @type {AuthContext} */ a) => ({ userId: a.userId, username: a.username, roles: a.roles, facilityId: a.facilityId });
+const actorOf = (/** @type {AuthContext} */ a) => ({
+  userId: a.userId,
+  username: a.username,
+  roles: a.roles,
+  facilityId: a.facilityId,
+});
 
 /**
  * Users the actor may see: everyone for deployment-wide admins, otherwise users
@@ -50,14 +83,25 @@ async function rolesFor(db, userIds) {
     .leftJoin('departments as d', 'd.id', 'ur.department_id')
     .whereIn('ur.user_id', userIds)
     .orderBy('r.name')
-    .select('ur.user_id', 'r.code as role', 'r.name as role_name', 'ur.facility_id', 'f.name as facility_name',
-      'ur.department_id', 'd.name as department_name');
+    .select(
+      'ur.user_id',
+      'r.code as role',
+      'r.name as role_name',
+      'ur.facility_id',
+      'f.name as facility_name',
+      'ur.department_id',
+      'd.name as department_name',
+    );
   const map = new Map();
   for (const r of rows) {
     if (!map.has(r.user_id)) map.set(r.user_id, []);
     map.get(r.user_id).push({
-      role: r.role, roleName: r.role_name, facilityId: r.facility_id, facilityName: r.facility_name,
-      departmentId: r.department_id, departmentName: r.department_name,
+      role: r.role,
+      roleName: r.role_name,
+      facilityId: r.facility_id,
+      facilityName: r.facility_name,
+      departmentId: r.department_id,
+      departmentName: r.department_name,
     });
   }
   return map;
@@ -105,7 +149,12 @@ async function checkAssignments(db, auth, roles) {
  */
 async function insertAssignments(trx, userId, roles, actorId) {
   if (!roles.length) return;
-  const roleRows = await trx('roles').whereIn('code', roles.map((r) => r.role)).select('id', 'code');
+  const roleRows = await trx('roles')
+    .whereIn(
+      'code',
+      roles.map((r) => r.role),
+    )
+    .select('id', 'code');
   const idOf = new Map(roleRows.map((r) => [r.code, r.id]));
   const seen = new Set();
   const rows = [];
@@ -113,7 +162,13 @@ async function insertAssignments(trx, userId, roles, actorId) {
     const k = `${a.role}|${a.facilityId}|${a.departmentId}`;
     if (seen.has(k)) continue;
     seen.add(k);
-    rows.push({ user_id: userId, role_id: idOf.get(a.role), facility_id: a.facilityId, department_id: a.departmentId, created_by: actorId });
+    rows.push({
+      user_id: userId,
+      role_id: idOf.get(a.role),
+      facility_id: a.facilityId,
+      department_id: a.departmentId,
+      created_by: actorId,
+    });
   }
   await trx('user_roles').insert(rows);
 }
@@ -130,13 +185,20 @@ export async function listUsers({ db }, auth, query) {
     q.andWhere((w) => w.whereILike('u.full_name', like).orWhereILike('u.username', like));
   }
   if (query.role)
-    q.whereExists(db('user_roles as ur2').join('roles as r2', 'r2.id', 'ur2.role_id')
-      .whereRaw('ur2.user_id = u.id').andWhere('r2.code', query.role));
+    q.whereExists(
+      db('user_roles as ur2')
+        .join('roles as r2', 'r2.id', 'ur2.role_id')
+        .whereRaw('ur2.user_id = u.id')
+        .andWhere('r2.code', query.role),
+    );
   const c = decodeCursor(query.cursor);
   if (c) q.andWhereRaw('(lower(u.full_name), u.id) > (?, ?)', [c.n, c.id]);
   const rows = await q.orderByRaw('lower(u.full_name), u.id').limit(query.limit + 1);
   const result = page(rows, query.limit, (u) => ({ n: u.full_name.toLowerCase(), id: u.id }));
-  const roles = await rolesFor(db, result.data.map((u) => u.id));
+  const roles = await rolesFor(
+    db,
+    result.data.map((u) => u.id),
+  );
   return { data: result.data.map((u) => toUser(u, roles.get(u.id) ?? [])), nextCursor: result.nextCursor };
 }
 
@@ -162,16 +224,27 @@ export async function createUser({ db }, auth, input, meta) {
   const id = await db.transaction(async (trx) => {
     const [u] = await trx('users')
       .insert({
-        username: input.username, full_name: input.fullName, email: input.email ?? null, phone: input.phone ?? null,
-        password_hash, must_change_password: input.mustChangePassword, licence_body: input.licenceBody ?? null,
-        licence_number: input.licenceNumber ?? null, cadre: input.cadre ?? null,
+        username: input.username,
+        full_name: input.fullName,
+        email: input.email ?? null,
+        phone: input.phone ?? null,
+        password_hash,
+        must_change_password: input.mustChangePassword,
+        licence_body: input.licenceBody ?? null,
+        licence_number: input.licenceNumber ?? null,
+        cadre: input.cadre ?? null,
         default_facility_id: input.roles.find((r) => r.facilityId)?.facilityId ?? null,
-        created_by: auth.userId, updated_by: auth.userId,
+        created_by: auth.userId,
+        updated_by: auth.userId,
       })
       .returning('*');
     await insertAssignments(trx, u.id, input.roles, auth.userId);
     await recordAudit(trx, actorOf(auth), meta, {
-      action: 'create', entityType: 'user', entityId: u.id, after: u, metadata: { roles: input.roles },
+      action: 'create',
+      entityType: 'user',
+      entityId: u.id,
+      after: u,
+      metadata: { roles: input.roles },
     });
     return u.id;
   });
@@ -185,11 +258,21 @@ export async function createUser({ db }, auth, input, meta) {
 export async function updateUser({ db }, auth, id, input, meta) {
   const before = await getManageable(db, auth, id, { forWrite: true });
   const patch = {};
-  const map = { fullName: 'full_name', email: 'email', phone: 'phone', licenceBody: 'licence_body', licenceNumber: 'licence_number', cadre: 'cadre' };
+  const map = {
+    fullName: 'full_name',
+    email: 'email',
+    phone: 'phone',
+    licenceBody: 'licence_body',
+    licenceNumber: 'licence_number',
+    cadre: 'cadre',
+  };
   for (const [k, col] of Object.entries(map)) if (k in input) patch[col] = input[k];
   if (!Object.keys(patch).length) return getUser({ db }, auth, id);
   await db.transaction(async (trx) => {
-    const [after] = await trx('users').where({ id }).update({ ...patch, updated_by: auth.userId }).returning('*');
+    const [after] = await trx('users')
+      .where({ id })
+      .update({ ...patch, updated_by: auth.userId })
+      .returning('*');
     await recordAudit(trx, actorOf(auth), meta, { action: 'update', entityType: 'user', entityId: id, before, after });
   });
   return getUser({ db }, auth, id);
@@ -212,8 +295,11 @@ export async function setRoles({ db }, auth, id, roles, meta) {
     await insertAssignments(trx, id, roles, auth.userId);
     const afterRoles = (await rolesFor(trx, [id])).get(id) ?? [];
     await recordAudit(trx, actorOf(auth), meta, {
-      action: 'update', entityType: 'user_roles', entityId: id,
-      before: { roles: beforeRoles.map(summarise) }, after: { roles: afterRoles.map(summarise) },
+      action: 'update',
+      entityType: 'user_roles',
+      entityId: id,
+      before: { roles: beforeRoles.map(summarise) },
+      after: { roles: afterRoles.map(summarise) },
     });
     // Sessions keep working; permissions are re-read on every request.
   });
@@ -230,14 +316,34 @@ export async function setStatus({ db }, auth, id, input, meta) {
   if (id === auth.userId) throw badRequest('You cannot disable your own account');
   const before = await getManageable(db, auth, id, { forWrite: true });
   await db.transaction(async (trx) => {
-    const [after] = await trx('users').where({ id })
-      .update(input.disabled
-        ? { status: 'disabled', disabled_at: trx.fn.now(), disabled_reason: input.reason ?? null, updated_by: auth.userId }
-        : { status: 'active', disabled_at: null, disabled_reason: null, failed_login_count: 0, locked_until: null, updated_by: auth.userId })
+    const [after] = await trx('users')
+      .where({ id })
+      .update(
+        input.disabled
+          ? {
+              status: 'disabled',
+              disabled_at: trx.fn.now(),
+              disabled_reason: input.reason ?? null,
+              updated_by: auth.userId,
+            }
+          : {
+              status: 'active',
+              disabled_at: null,
+              disabled_reason: null,
+              failed_login_count: 0,
+              locked_until: null,
+              updated_by: auth.userId,
+            },
+      )
       .returning('*');
     if (input.disabled) await revokeUserSessions(trx, id, 'user_disabled');
     await recordAudit(trx, actorOf(auth), meta, {
-      action: 'update', entityType: 'user', entityId: id, before, after, reason: input.reason ?? null,
+      action: 'update',
+      entityType: 'user',
+      entityId: id,
+      before,
+      after,
+      reason: input.reason ?? null,
     });
   });
   return getUser({ db }, auth, id);
@@ -249,7 +355,10 @@ export async function forceLogout({ db }, auth, id, meta) {
   return db.transaction(async (trx) => {
     const count = await revokeUserSessions(trx, id, 'forced_logout');
     await recordAudit(trx, actorOf(auth), meta, {
-      action: 'logout', entityType: 'user', entityId: id, metadata: { forced: true, sessionsEnded: count },
+      action: 'logout',
+      entityType: 'user',
+      entityId: id,
+      metadata: { forced: true, sessionsEnded: count },
     });
     return count;
   });
@@ -263,10 +372,19 @@ export async function resetPassword({ db }, auth, id, password, meta) {
   const hash = await hashPassword(password);
   await db.transaction(async (trx) => {
     await trx('users').where({ id }).update({
-      password_hash: hash, must_change_password: true, failed_login_count: 0, locked_until: null, updated_by: auth.userId,
+      password_hash: hash,
+      must_change_password: true,
+      failed_login_count: 0,
+      locked_until: null,
+      updated_by: auth.userId,
     });
     await revokeUserSessions(trx, id, 'password_reset');
-    await recordAudit(trx, actorOf(auth), meta, { action: 'update', entityType: 'user', entityId: id, metadata: { field: 'password', reset: true } });
+    await recordAudit(trx, actorOf(auth), meta, {
+      action: 'update',
+      entityType: 'user',
+      entityId: id,
+      metadata: { field: 'password', reset: true },
+    });
   });
 }
 
@@ -274,8 +392,18 @@ export async function resetPassword({ db }, auth, id, password, meta) {
 export async function unlock({ db }, auth, id, meta) {
   const before = await getManageable(db, auth, id, { forWrite: true });
   await db.transaction(async (trx) => {
-    const [after] = await trx('users').where({ id }).update({ failed_login_count: 0, locked_until: null, updated_by: auth.userId }).returning('*');
-    await recordAudit(trx, actorOf(auth), meta, { action: 'update', entityType: 'user', entityId: id, before, after, metadata: { unlocked: true } });
+    const [after] = await trx('users')
+      .where({ id })
+      .update({ failed_login_count: 0, locked_until: null, updated_by: auth.userId })
+      .returning('*');
+    await recordAudit(trx, actorOf(auth), meta, {
+      action: 'update',
+      entityType: 'user',
+      entityId: id,
+      before,
+      after,
+      metadata: { unlocked: true },
+    });
   });
   return getUser({ db }, auth, id);
 }
@@ -286,7 +414,20 @@ export async function listRoles({ db }) {
     .leftJoin('role_permissions as rp', 'rp.role_id', 'r.id')
     .groupBy('r.id')
     .orderBy('r.name')
-    .select('r.code', 'r.name', 'r.description', 'r.is_clinical',
-      db.raw(`COALESCE(array_agg(rp.permission_code ORDER BY rp.permission_code) FILTER (WHERE rp.permission_code IS NOT NULL), '{}') AS permissions`));
-  return rows.map((r) => ({ code: r.code, name: r.name, description: r.description, clinical: r.is_clinical, permissions: r.permissions }));
+    .select(
+      'r.code',
+      'r.name',
+      'r.description',
+      'r.is_clinical',
+      db.raw(
+        `COALESCE(array_agg(rp.permission_code ORDER BY rp.permission_code) FILTER (WHERE rp.permission_code IS NOT NULL), '{}') AS permissions`,
+      ),
+    );
+  return rows.map((r) => ({
+    code: r.code,
+    name: r.name,
+    description: r.description,
+    clinical: r.is_clinical,
+    permissions: r.permissions,
+  }));
 }

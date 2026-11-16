@@ -25,7 +25,10 @@ export async function login({ db, config, crypto }, input, meta) {
   const user = await db('users').where({ username: input.username }).whereNull('deleted_at').first();
   const failAudit = (reason, actor = null) =>
     recordAudit(db, actor, meta, {
-      action: 'login_failed', entityType: 'user', entityId: actor?.userId ?? null, facilityId: null,
+      action: 'login_failed',
+      entityType: 'user',
+      entityId: actor?.userId ?? null,
+      facilityId: null,
       metadata: { username: input.username, reason },
     });
 
@@ -38,9 +41,14 @@ export async function login({ db, config, crypto }, input, meta) {
 
   if (user.locked_until && user.locked_until > new Date()) {
     await failAudit('locked', actor);
-    throw new AppError(423, 'ACCOUNT_LOCKED', 'Too many failed attempts. Try again later or ask an administrator to unlock your account.', {
-      lockedUntil: user.locked_until,
-    });
+    throw new AppError(
+      423,
+      'ACCOUNT_LOCKED',
+      'Too many failed attempts. Try again later or ask an administrator to unlock your account.',
+      {
+        lockedUntil: user.locked_until,
+      },
+    );
   }
   if (user.locked_until) {
     // The lock has expired: start counting failures afresh.
@@ -60,7 +68,12 @@ export async function login({ db, config, crypto }, input, meta) {
       .returning(['failed_login_count', 'locked_until']);
     await failAudit('bad_password', actor);
     if (row.failed_login_count === config.LOGIN_MAX_ATTEMPTS)
-      await recordAudit(db, actor, meta, { action: 'lockout', entityType: 'user', entityId: user.id, facilityId: null });
+      await recordAudit(db, actor, meta, {
+        action: 'lockout',
+        entityType: 'user',
+        entityId: user.id,
+        facilityId: null,
+      });
     throw INVALID();
   }
 
@@ -79,23 +92,37 @@ export async function login({ db, config, crypto }, input, meta) {
 
   const grants = await loadGrants(db, user.id);
   const facilities = await accessibleFacilities(db, grants);
-  if (!facilities.length) throw forbidden('Your account has no facility access. Contact your administrator.');
-  const pickId = input.facilityId ?? user.default_facility_id;
-  const facility = facilities.find((f) => f.id === pickId) ?? (input.facilityId ? null : facilities[0]);
-  if (!facility) throw forbidden('You do not have access to that facility');
+  const isGlobal = grants.some((g) => g.facilityId === null);
+  let facility = null;
+  if (facilities.length) {
+    const pickId = input.facilityId ?? user.default_facility_id;
+    facility = facilities.find((f) => f.id === pickId) ?? (input.facilityId ? null : facilities[0]);
+    if (!facility) throw forbidden('You do not have access to that facility');
+  } else if (!isGlobal) {
+    throw forbidden('Your account has no facility access. Contact your administrator.');
+  }
+  // else: a fresh installation — a deployment admin signs in without a facility to create the first one.
 
   return db.transaction(async (trx) => {
-    await trx('users').where({ id: user.id }).update({ failed_login_count: 0, locked_until: null, last_login_at: trx.fn.now() });
+    await trx('users')
+      .where({ id: user.id })
+      .update({ failed_login_count: 0, locked_until: null, last_login_at: trx.fn.now() });
     const expiresAt = new Date(Date.now() + config.SESSION_MAX_AGE_SEC * 1000);
     const [session] = await trx('sessions')
       .insert({
-        user_id: user.id, facility_id: facility.id, expires_at: expiresAt, ip: meta.ip ?? null,
-        user_agent: meta.userAgent ?? null, mfa_verified: user.totp_enabled,
+        user_id: user.id,
+        facility_id: facility?.id ?? null,
+        expires_at: expiresAt,
+        ip: meta.ip ?? null,
+        user_agent: meta.userAgent ?? null,
+        mfa_verified: user.totp_enabled,
       })
       .returning('*');
     const refresh = await issueRefreshToken(trx, config, { sessionId: session.id, sessionExpiresAt: expiresAt });
-    await recordAudit(trx, { ...actor, facilityId: facility.id }, meta, {
-      action: 'login', entityType: 'session', entityId: session.id,
+    await recordAudit(trx, { ...actor, facilityId: facility?.id ?? null }, meta, {
+      action: 'login',
+      entityType: 'session',
+      entityId: session.id,
     });
     return {
       sessionId: session.id,
@@ -124,18 +151,37 @@ export async function refresh({ db, config }, token, meta) {
       .where('rt.token_hash', sha256(token))
       .forUpdate('rt')
       .first(
-        'rt.id', 'rt.used_at', 'rt.expires_at', 'rt.revoked_at', 's.id as session_id', 's.revoked_at as session_revoked_at',
-        's.expires_at as session_expires_at', 's.last_seen_at', 's.facility_id', 'u.id as user_id', 'u.username', 'u.status',
+        'rt.id',
+        'rt.used_at',
+        'rt.expires_at',
+        'rt.revoked_at',
+        's.id as session_id',
+        's.revoked_at as session_revoked_at',
+        's.expires_at as session_expires_at',
+        's.last_seen_at',
+        's.facility_id',
+        'u.id as user_id',
+        'u.username',
+        'u.status',
       );
     if (!row) return { fail: unauthorized('INVALID_REFRESH_TOKEN', 'Please sign in') };
 
     if (row.used_at) {
       await revokeSession(trx, row.session_id, 'refresh_token_reuse');
-      await recordAudit(trx, { userId: row.user_id, username: row.username, roles: [], facilityId: row.facility_id }, meta, {
-        action: 'token_reuse', entityType: 'session', entityId: row.session_id,
-        metadata: { note: 'A previously used refresh token was presented; session revoked' },
-      });
-      return { fail: unauthorized('REFRESH_TOKEN_REUSED', 'For your security this session was ended. Please sign in again.') };
+      await recordAudit(
+        trx,
+        { userId: row.user_id, username: row.username, roles: [], facilityId: row.facility_id },
+        meta,
+        {
+          action: 'token_reuse',
+          entityType: 'session',
+          entityId: row.session_id,
+          metadata: { note: 'A previously used refresh token was presented; session revoked' },
+        },
+      );
+      return {
+        fail: unauthorized('REFRESH_TOKEN_REUSED', 'For your security this session was ended. Please sign in again.'),
+      };
     }
     const idle = Date.now() - new Date(row.last_seen_at).getTime() > config.SESSION_IDLE_MINUTES * 60_000;
     if (row.revoked_at || row.session_revoked_at || row.expires_at < new Date() || row.status !== 'active' || idle) {
@@ -145,7 +191,9 @@ export async function refresh({ db, config }, token, meta) {
 
     await trx('refresh_tokens').where({ id: row.id }).update({ used_at: trx.fn.now() });
     const next = await issueRefreshToken(trx, config, {
-      sessionId: row.session_id, sessionExpiresAt: row.session_expires_at, parentId: row.id,
+      sessionId: row.session_id,
+      sessionExpiresAt: row.session_expires_at,
+      parentId: row.id,
     });
     return {
       accessToken: signAccessToken(config, { userId: row.user_id, sessionId: row.session_id }),
@@ -168,9 +216,15 @@ export async function me({ db, config }, auth) {
   const facility = facilities.find((f) => f.id === auth.facilityId) ?? null;
   return {
     user: {
-      id: user.id, username: user.username, fullName: user.full_name, email: user.email, cadre: user.cadre,
-      licenceBody: user.licence_body, licenceNumber: user.licence_number,
-      mustChangePassword: user.must_change_password, totpEnabled: user.totp_enabled,
+      id: user.id,
+      username: user.username,
+      fullName: user.full_name,
+      email: user.email,
+      cadre: user.cadre,
+      licenceBody: user.licence_body,
+      licenceNumber: user.licence_number,
+      mustChangePassword: user.must_change_password,
+      totpEnabled: user.totp_enabled,
     },
     facility: facility && { id: facility.id, name: facility.name, kmhflCode: facility.kmhfl_code },
     facilities: facilities.map((f) => ({ id: f.id, name: f.name, kmhflCode: f.kmhfl_code })),
@@ -193,16 +247,24 @@ export async function changePassword({ db }, auth, input, meta) {
   const problems = checkPassword(input.newPassword, { username: user.username });
   if (problems.length) throw new AppError(400, 'WEAK_PASSWORD', 'Password does not meet the policy', { problems });
   if (await verifyPassword(user.password_hash, input.newPassword))
-    throw new AppError(400, 'WEAK_PASSWORD', 'Choose a password you have not used before', { problems: ['Must differ from the current password'] });
+    throw new AppError(400, 'WEAK_PASSWORD', 'Choose a password you have not used before', {
+      problems: ['Must differ from the current password'],
+    });
 
   const hash = await hashPassword(input.newPassword);
   await db.transaction(async (trx) => {
     await trx('users').where({ id: user.id }).update({
-      password_hash: hash, must_change_password: false, password_changed_at: trx.fn.now(), updated_by: user.id,
+      password_hash: hash,
+      must_change_password: false,
+      password_changed_at: trx.fn.now(),
+      updated_by: user.id,
     });
     await revokeUserSessions(trx, user.id, 'password_changed', auth.sessionId);
     await recordAudit(trx, actorFrom(auth), meta, {
-      action: 'update', entityType: 'user', entityId: user.id, metadata: { field: 'password' },
+      action: 'update',
+      entityType: 'user',
+      entityId: user.id,
+      metadata: { field: 'password' },
     });
   });
 }
@@ -219,7 +281,10 @@ export async function switchFacility({ db }, auth, facilityId, meta) {
   if (!facilities.some((f) => f.id === facilityId)) throw forbidden('You do not have access to that facility');
   await db('sessions').where({ id: auth.sessionId }).update({ facility_id: facilityId });
   await recordAudit(db, { ...actorFrom(auth), facilityId }, meta, {
-    action: 'update', entityType: 'session', entityId: auth.sessionId, metadata: { switchedFrom: auth.facilityId },
+    action: 'update',
+    entityType: 'session',
+    entityId: auth.sessionId,
+    metadata: { switchedFrom: auth.facilityId },
   });
 }
 
@@ -232,8 +297,10 @@ export async function totpSetup({ db, crypto }, auth) {
   const user = await db('users').where({ id: auth.userId }).first();
   if (user.totp_enabled) throw badRequest('Two-factor authentication is already enabled');
   const secret = authenticator.generateSecret();
-  await db('users').where({ id: user.id }).update({ totp_secret_enc: crypto.encrypt(secret) });
-  return { secret, otpauthUrl: authenticator.keyuri(user.username, 'AfyaZuri', secret) };
+  await db('users')
+    .where({ id: user.id })
+    .update({ totp_secret_enc: crypto.encrypt(secret) });
+  return { secret, otpauthUrl: authenticator.keyuri(user.username, 'Afyazuri', secret) };
 }
 
 /**
@@ -251,7 +318,12 @@ export async function totpEnable({ db, crypto }, auth, code, meta) {
     throw new AppError(400, 'INVALID_TOTP', 'That code is not valid');
   await db.transaction(async (trx) => {
     await trx('users').where({ id: user.id }).update({ totp_enabled: true });
-    await recordAudit(trx, actorFrom(auth), meta, { action: 'update', entityType: 'user', entityId: user.id, metadata: { field: 'totp', enabled: true } });
+    await recordAudit(trx, actorFrom(auth), meta, {
+      action: 'update',
+      entityType: 'user',
+      entityId: user.id,
+      metadata: { field: 'totp', enabled: true },
+    });
   });
 }
 
@@ -268,9 +340,19 @@ export async function totpDisable({ db, crypto }, auth, code, meta) {
     throw new AppError(400, 'INVALID_TOTP', 'That code is not valid');
   await db.transaction(async (trx) => {
     await trx('users').where({ id: user.id }).update({ totp_enabled: false, totp_secret_enc: null });
-    await recordAudit(trx, actorFrom(auth), meta, { action: 'update', entityType: 'user', entityId: user.id, metadata: { field: 'totp', enabled: false } });
+    await recordAudit(trx, actorFrom(auth), meta, {
+      action: 'update',
+      entityType: 'user',
+      entityId: user.id,
+      metadata: { field: 'totp', enabled: false },
+    });
   });
 }
 
 /** @param {import('../../middleware/auth.js').AuthContext} auth */
-const actorFrom = (auth) => ({ userId: auth.userId, username: auth.username, roles: auth.roles, facilityId: auth.facilityId });
+const actorFrom = (auth) => ({
+  userId: auth.userId,
+  username: auth.username,
+  roles: auth.roles,
+  facilityId: auth.facilityId,
+});

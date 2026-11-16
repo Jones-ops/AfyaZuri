@@ -2,32 +2,42 @@
   "name": "afyazuri",
   "private": true,
   "type": "module",
-  "description": "AfyaZuri — integrated Hospital Management System for Kenyan health facilities",
+  "description": "Afyazuri — integrated Hospital Management System for Kenyan health facilities",
   "workspaces": [
     "packages/*",
     "apps/*"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=20.12"
   },
   "scripts": {
-    "dev": "npm run dev --workspace=apps/api & npm run dev --workspace=apps/web",
+    "secrets": "node scripts/gen-secrets.js",
+    "dev": "node scripts/dev.js",
     "dev:api": "npm run dev --workspace=apps/api",
     "dev:web": "npm run dev --workspace=apps/web",
     "build": "npm run build --workspace=apps/web",
+    "start": "node scripts/start.js",
+    "admin:create": "node scripts/create-admin.js",
+    "backup": "node scripts/backup.js",
+    "db:local": "node scripts/local-postgres.js",
     "db:migrate": "knex --knexfile knexfile.js migrate:latest",
     "db:rollback": "knex --knexfile knexfile.js migrate:rollback",
     "db:seed": "knex --knexfile knexfile.js seed:run",
-    "db:local": "node scripts/local-postgres.js",
+    "docs:permissions": "node scripts/gen-permission-matrix.js",
     "lint": "eslint .",
     "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "vitest run --project unit",
-    "test:integration": "vitest run --project integration"
+    "test:integration": "vitest run --project integration",
+    "test:e2e": "npm run build && playwright test"
+  },
+  "dependencies": {
+    "embedded-postgres": "16.15.0-beta.19"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
-    "embedded-postgres": "16.15.0-beta.19",
+    "@playwright/test": "^1.64.1",
     "eslint": "^9.17.0",
     "eslint-plugin-react-hooks": "^5.1.0",
     "globals": "^15.14.0",
@@ -37,6 +47,7 @@
   },
   "allowScripts": {
     "@embedded-postgres/windows-x64@16.15.0-beta.19": true,
+    "@embedded-postgres/linux-x64@16.15.0-beta.19": true,
     "esbuild@0.25.12": true,
     "esbuild@0.28.2": true,
     "argon2@0.41.1": true

@@ -1,16 +1,21 @@
 import { z } from 'zod';
-import {
-  BED_STATUS, DEPARTMENT_TYPES, FACILITY_LEVELS, FACILITY_OWNERSHIP, SERVICE_POINT_TYPES,
-} from '../enums.js';
+import { BED_STATUS, DEPARTMENT_TYPES, FACILITY_LEVELS, FACILITY_OWNERSHIP, SERVICE_POINT_TYPES } from '../enums.js';
 import { kenyanPhone } from './common.js';
 
 /** @param {string[]} arr */
 const e = (arr) => z.enum(/** @type {[string, ...string[]]} */ (arr));
-const code = z.string().trim().toUpperCase().regex(/^[A-Z0-9_]{2,16}$/, '2–16 letters, digits or _');
+const code = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^[A-Z0-9_]{2,16}$/, '2–16 letters, digits or _');
 
 export const facilityBody = z.object({
   name: z.string().trim().min(2).max(160),
-  kmhflCode: z.string().trim().regex(/^\d{4,6}$/, 'KMHFL code is 4–6 digits'),
+  kmhflCode: z
+    .string()
+    .trim()
+    .regex(/^\d{4,6}$/, 'KMHFL code is 4–6 digits'),
   level: e(FACILITY_LEVELS),
   ownership: e(FACILITY_OWNERSHIP),
   countyCode: z.string().max(3).optional().nullable(),
@@ -38,9 +43,7 @@ export const servicePointBody = z.object({
   name: z.string().trim().min(2).max(120),
   type: e(SERVICE_POINT_TYPES),
 });
-export const servicePointUpdateBody = servicePointBody
-  .partial()
-  .extend({ active: z.boolean().optional() });
+export const servicePointUpdateBody = servicePointBody.partial().extend({ active: z.boolean().optional() });
 
 export const wardBody = z.object({
   departmentId: z.string().uuid(),

@@ -6,18 +6,54 @@ import { api } from '../api.js';
 import { Can, useAuth } from '../auth.jsx';
 import { Badge, EmptyState, ErrorMessage, Field, PageHeader, Spinner } from '../components/ui.jsx';
 
-const TABS = [['departments', 'Departments'], ['servicePoints', 'Service points'], ['wards', 'Wards & beds']];
+const TABS = [
+  ['departments', 'Departments'],
+  ['servicePoints', 'Service points'],
+  ['wards', 'Wards & beds'],
+];
 
 export default function Facility() {
   const [tab, setTab] = useState('departments');
+  const [adding, setAdding] = useState(false);
   const { me } = useAuth();
+  const superAdmin = me.roles.includes('super_admin');
+  if (!me.facility)
+    return (
+      <>
+        <PageHeader
+          title="Add your first facility"
+          description="This installation has no facilities yet. Add one to start setting up departments, staff and wards."
+        />
+        <NewFacility />
+      </>
+    );
   return (
     <>
-      <PageHeader title="Facility setup" description={me.facility.name} />
+      <PageHeader
+        title="Facility setup"
+        description={`${me.facility.name} · KMHFL ${me.facility.kmhflCode}`}
+        actions={
+          superAdmin && (
+            <button className="btn-secondary" onClick={() => setAdding((v) => !v)}>
+              Add facility
+            </button>
+          )
+        }
+      />
+      {adding && (
+        <div className="mb-4">
+          <NewFacility />
+        </div>
+      )}
       <div role="tablist" className="mb-4 flex gap-1 overflow-x-auto border-b border-slate-200">
         {TABS.map(([k, label]) => (
-          <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
-            className={`min-h-10 border-b-2 px-4 text-sm font-medium whitespace-nowrap ${tab === k ? 'border-brand-700 text-brand-800' : 'border-transparent text-slate-600 hover:text-slate-900'}`}>
+          <button
+            key={k}
+            role="tab"
+            aria-selected={tab === k}
+            onClick={() => setTab(k)}
+            className={`min-h-10 border-b-2 px-4 text-sm font-medium whitespace-nowrap ${tab === k ? 'border-brand-700 text-brand-800' : 'border-transparent text-slate-600 hover:text-slate-900'}`}
+          >
             {label}
           </button>
         ))}
@@ -29,10 +65,93 @@ export default function Facility() {
   );
 }
 
+const LEVELS = [
+  ['level_2', 'Level 2 — Dispensary'],
+  ['level_3', 'Level 3 — Health centre'],
+  ['level_4', 'Level 4 — Sub-county hospital'],
+  ['level_5', 'Level 5 — County referral hospital'],
+  ['level_6', 'Level 6 — National referral hospital'],
+];
+const OWNERSHIP = [
+  ['moh', 'Ministry of Health'],
+  ['county', 'County government'],
+  ['faith_based', 'Faith-based'],
+  ['private', 'Private'],
+  ['ngo', 'NGO'],
+];
+
+/** Create a facility and switch the session to it. Deployment admins only (the API enforces this). */
+function NewFacility() {
+  const qc = useQueryClient();
+  const form = useForm({ defaultValues: { level: 'level_4', ownership: 'county' } });
+  const m = useMutation({
+    mutationFn: async (v) => {
+      const f = await api.post('/facilities', {
+        ...v,
+        countyCode: v.countyCode || null,
+        phone: v.phone || null,
+        email: v.email || null,
+      });
+      await api.post('/auth/switch-facility', { facilityId: f.id });
+      return f;
+    },
+    onSuccess: () => qc.invalidateQueries(),
+  });
+  const r = form.register;
+  return (
+    <form
+      className="card grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3"
+      onSubmit={form.handleSubmit((v) => m.mutate(v))}
+    >
+      <div className="sm:col-span-2 lg:col-span-3">
+        <ErrorMessage error={m.error} />
+      </div>
+      <Field label="Facility name" required>
+        <input className="input" {...r('name', { required: true })} />
+      </Field>
+      <Field label="KMHFL code" required hint="4–6 digits from the Kenya Master Health Facility List">
+        <input className="input" inputMode="numeric" {...r('kmhflCode', { required: true })} />
+      </Field>
+      <Field label="Level">
+        <select className="input" {...r('level')}>
+          {LEVELS.map(([v, l]) => (
+            <option key={v} value={v}>
+              {l}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Field label="Ownership">
+        <select className="input" {...r('ownership')}>
+          {OWNERSHIP.map(([v, l]) => (
+            <option key={v} value={v}>
+              {l}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Field label="County code" hint="e.g. 047 for Nairobi">
+        <input className="input" maxLength={3} {...r('countyCode')} />
+      </Field>
+      <Field label="Phone">
+        <input className="input" inputMode="tel" {...r('phone')} />
+      </Field>
+      <div className="sm:col-span-2 lg:col-span-3">
+        <button className="btn-primary" disabled={m.isPending}>
+          Create facility
+        </button>
+      </div>
+    </form>
+  );
+}
+
 /** Shared create form + mutation wiring for a facility resource. */
 function useCreate(path, keys) {
   const qc = useQueryClient();
-  return useMutation({ mutationFn: (body) => api.post(path, body), onSuccess: () => keys.forEach((k) => qc.invalidateQueries({ queryKey: [k] })) });
+  return useMutation({
+    mutationFn: (body) => api.post(path, body),
+    onSuccess: () => keys.forEach((k) => qc.invalidateQueries({ queryKey: [k] })),
+  });
 }
 
 function Departments() {
@@ -42,15 +161,36 @@ function Departments() {
   return (
     <div className="space-y-4">
       <Can perm="facilities.manage">
-        <form className="card grid gap-3 p-4 sm:grid-cols-[2fr,1fr,1fr,auto] sm:items-end" onSubmit={form.handleSubmit((v) => create.mutate(v, { onSuccess: () => form.reset({ type: 'opd' }) }))}>
-          <Field label="Name"><input className="input" {...form.register('name', { required: true })} /></Field>
-          <Field label="Code"><input className="input uppercase" {...form.register('code', { required: true })} /></Field>
-          <Field label="Type"><select className="input" {...form.register('type')}>{DEPARTMENT_TYPES.map((t) => <option key={t}>{t}</option>)}</select></Field>
-          <button className="btn-primary" disabled={create.isPending}>Add</button>
-          <div className="sm:col-span-4"><ErrorMessage error={create.error} /></div>
+        <form
+          className="card grid gap-3 p-4 sm:grid-cols-[2fr,1fr,1fr,auto] sm:items-end"
+          onSubmit={form.handleSubmit((v) => create.mutate(v, { onSuccess: () => form.reset({ type: 'opd' }) }))}
+        >
+          <Field label="Name">
+            <input className="input" {...form.register('name', { required: true })} />
+          </Field>
+          <Field label="Code">
+            <input className="input uppercase" {...form.register('code', { required: true })} />
+          </Field>
+          <Field label="Type">
+            <select className="input" {...form.register('type')}>
+              {DEPARTMENT_TYPES.map((t) => (
+                <option key={t}>{t}</option>
+              ))}
+            </select>
+          </Field>
+          <button className="btn-primary" disabled={create.isPending}>
+            Add
+          </button>
+          <div className="sm:col-span-4">
+            <ErrorMessage error={create.error} />
+          </div>
         </form>
       </Can>
-      <List q={q} cols={['Name', 'Code', 'Type', 'Status']} row={(d) => [d.name, d.code, d.type, d.active ? <Badge tone="green">Active</Badge> : <Badge>Inactive</Badge>]} />
+      <List
+        q={q}
+        cols={['Name', 'Code', 'Type', 'Status']}
+        row={(d) => [d.name, d.code, d.type, d.active ? <Badge tone="green">Active</Badge> : <Badge>Inactive</Badge>]}
+      />
     </div>
   );
 }
@@ -63,12 +203,37 @@ function ServicePoints() {
   return (
     <div className="space-y-4">
       <Can perm="facilities.manage">
-        <form className="card grid gap-3 p-4 sm:grid-cols-[2fr,1fr,1fr,auto] sm:items-end" onSubmit={form.handleSubmit((v) => create.mutate(v, { onSuccess: () => form.reset({ type: 'consultation' }) }))}>
-          <Field label="Name"><input className="input" {...form.register('name', { required: true })} /></Field>
-          <Field label="Department"><select className="input" {...form.register('departmentId', { required: true })}>{depts.data?.data.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></Field>
-          <Field label="Type"><select className="input" {...form.register('type')}>{SERVICE_POINT_TYPES.map((t) => <option key={t}>{t}</option>)}</select></Field>
-          <button className="btn-primary" disabled={create.isPending}>Add</button>
-          <div className="sm:col-span-4"><ErrorMessage error={create.error} /></div>
+        <form
+          className="card grid gap-3 p-4 sm:grid-cols-[2fr,1fr,1fr,auto] sm:items-end"
+          onSubmit={form.handleSubmit((v) =>
+            create.mutate(v, { onSuccess: () => form.reset({ type: 'consultation' }) }),
+          )}
+        >
+          <Field label="Name">
+            <input className="input" {...form.register('name', { required: true })} />
+          </Field>
+          <Field label="Department">
+            <select className="input" {...form.register('departmentId', { required: true })}>
+              {depts.data?.data.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Type">
+            <select className="input" {...form.register('type')}>
+              {SERVICE_POINT_TYPES.map((t) => (
+                <option key={t}>{t}</option>
+              ))}
+            </select>
+          </Field>
+          <button className="btn-primary" disabled={create.isPending}>
+            Add
+          </button>
+          <div className="sm:col-span-4">
+            <ErrorMessage error={create.error} />
+          </div>
         </form>
       </Can>
       <List q={q} cols={['Name', 'Department', 'Type']} row={(s) => [s.name, s.departmentName, s.type]} />
@@ -87,18 +252,54 @@ function Wards() {
   return (
     <div className="space-y-4">
       <Can perm="facilities.manage">
-        <form className="card grid gap-3 p-4 sm:grid-cols-[2fr,1fr,1fr,1fr,auto] sm:items-end" onSubmit={form.handleSubmit((v) => create.mutate(v, { onSuccess: () => form.reset({ gender: 'mixed' }) }))}>
-          <Field label="Ward name"><input className="input" {...form.register('name', { required: true })} /></Field>
-          <Field label="Code"><input className="input uppercase" {...form.register('code', { required: true })} /></Field>
-          <Field label="Department"><select className="input" {...form.register('departmentId', { required: true })}>{depts.data?.data.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></Field>
-          <Field label="Gender"><select className="input" {...form.register('gender')}><option>mixed</option><option>male</option><option>female</option></select></Field>
-          <button className="btn-primary" disabled={create.isPending}>Add</button>
-          <div className="sm:col-span-5"><ErrorMessage error={create.error} /></div>
+        <form
+          className="card grid gap-3 p-4 sm:grid-cols-[2fr,1fr,1fr,1fr,auto] sm:items-end"
+          onSubmit={form.handleSubmit((v) => create.mutate(v, { onSuccess: () => form.reset({ gender: 'mixed' }) }))}
+        >
+          <Field label="Ward name">
+            <input className="input" {...form.register('name', { required: true })} />
+          </Field>
+          <Field label="Code">
+            <input className="input uppercase" {...form.register('code', { required: true })} />
+          </Field>
+          <Field label="Department">
+            <select className="input" {...form.register('departmentId', { required: true })}>
+              {depts.data?.data.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Gender">
+            <select className="input" {...form.register('gender')}>
+              <option>mixed</option>
+              <option>male</option>
+              <option>female</option>
+            </select>
+          </Field>
+          <button className="btn-primary" disabled={create.isPending}>
+            Add
+          </button>
+          <div className="sm:col-span-5">
+            <ErrorMessage error={create.error} />
+          </div>
         </form>
       </Can>
-      <List q={q} cols={['Ward', 'Department', 'Beds', 'Available', 'Occupied', '']}
-        row={(w) => [w.name, w.departmentName, w.bedCount, w.available, w.occupied,
-          <button key="b" className="text-sm text-brand-800 hover:underline" onClick={() => setWardId(w.id)}>Beds</button>]} />
+      <List
+        q={q}
+        cols={['Ward', 'Department', 'Beds', 'Available', 'Occupied', '']}
+        row={(w) => [
+          w.name,
+          w.departmentName,
+          w.bedCount,
+          w.available,
+          w.occupied,
+          <button key="b" className="text-sm text-brand-800 hover:underline" onClick={() => setWardId(w.id)}>
+            Beds
+          </button>,
+        ]}
+      />
       {wardId && <Beds wardId={wardId} />}
     </div>
   );
@@ -109,9 +310,21 @@ function Beds({ wardId }) {
   const { canAny } = useAuth();
   const q = useQuery({ queryKey: ['beds', wardId], queryFn: () => api.get(`/wards/${wardId}/beds`) });
   const [label, setLabel] = useState('');
-  const refresh = () => { qc.invalidateQueries({ queryKey: ['beds', wardId] }); qc.invalidateQueries({ queryKey: ['wards'] }); };
-  const add = useMutation({ mutationFn: () => api.post(`/wards/${wardId}/beds`, { label }), onSuccess: () => { setLabel(''); refresh(); } });
-  const status = useMutation({ mutationFn: ({ id, s }) => api.patch(`/beds/${id}/status`, { status: s }), onSuccess: refresh });
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ['beds', wardId] });
+    qc.invalidateQueries({ queryKey: ['wards'] });
+  };
+  const add = useMutation({
+    mutationFn: () => api.post(`/wards/${wardId}/beds`, { label }),
+    onSuccess: () => {
+      setLabel('');
+      refresh();
+    },
+  });
+  const status = useMutation({
+    mutationFn: ({ id, s }) => api.patch(`/beds/${id}/status`, { status: s }),
+    onSuccess: refresh,
+  });
   const canSet = canAny(['facilities.manage', 'ipd.beds.manage']);
   if (q.isPending) return <Spinner />;
   return (
@@ -121,18 +334,42 @@ function Beds({ wardId }) {
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
         {q.data.data.map((b) => (
           <div key={b.id} className="rounded border border-slate-200 p-2 text-sm">
-            <div className="flex items-center justify-between"><span className="font-medium">{b.label}</span><Badge tone={BED_TONE[b.status]}>{b.status.replace(/_/g, ' ')}</Badge></div>
+            <div className="flex items-center justify-between">
+              <span className="font-medium">{b.label}</span>
+              <Badge tone={BED_TONE[b.status]}>{b.status.replace(/_/g, ' ')}</Badge>
+            </div>
             {canSet && b.status !== 'occupied' && (
-              <select aria-label={`Status of ${b.label}`} className="input mt-2 min-h-8 text-xs" value={b.status} onChange={(e) => status.mutate({ id: b.id, s: e.target.value })}>
-                {BED_STATUS.filter((s) => s !== 'occupied').map((s) => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
+              <select
+                aria-label={`Status of ${b.label}`}
+                className="input mt-2 min-h-8 text-xs"
+                value={b.status}
+                onChange={(e) => status.mutate({ id: b.id, s: e.target.value })}
+              >
+                {BED_STATUS.filter((s) => s !== 'occupied').map((s) => (
+                  <option key={s} value={s}>
+                    {s.replace(/_/g, ' ')}
+                  </option>
+                ))}
               </select>
             )}
           </div>
         ))}
       </div>
       <Can perm="facilities.manage">
-        <form className="mt-3 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (label) add.mutate(); }}>
-          <input className="input max-w-40" aria-label="New bed label" placeholder="Bed label" value={label} onChange={(e) => setLabel(e.target.value)} />
+        <form
+          className="mt-3 flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (label) add.mutate();
+          }}
+        >
+          <input
+            className="input max-w-40"
+            aria-label="New bed label"
+            placeholder="Bed label"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+          />
           <button className="btn-secondary">Add bed</button>
         </form>
       </Can>
@@ -143,12 +380,31 @@ function Beds({ wardId }) {
 function List({ q, cols, row }) {
   if (q.isPending) return <Spinner />;
   if (q.error) return <ErrorMessage error={q.error} />;
-  if (!q.data.data.length) return <div className="card"><EmptyState title="Nothing here yet" /></div>;
+  if (!q.data.data.length)
+    return (
+      <div className="card">
+        <EmptyState title="Nothing here yet" />
+      </div>
+    );
   return (
     <div className="card overflow-x-auto">
       <table className="table-base">
-        <thead><tr>{cols.map((c) => <th key={c}>{c}</th>)}</tr></thead>
-        <tbody>{q.data.data.map((r) => <tr key={r.id}>{row(r).map((c, i) => <td key={i}>{c}</td>)}</tr>)}</tbody>
+        <thead>
+          <tr>
+            {cols.map((c) => (
+              <th key={c}>{c}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {q.data.data.map((r) => (
+            <tr key={r.id}>
+              {row(r).map((c, i) => (
+                <td key={i}>{c}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
       </table>
     </div>
   );

@@ -24,7 +24,13 @@ export function idempotent(db, opts = {}) {
     const userId = req.auth.userId;
     const requestHash = sha256(`${req.method} ${req.originalUrl.split('?')[0]} ${JSON.stringify(req.body ?? {})}`);
     const inserted = await db('idempotency_keys')
-      .insert({ key, user_id: userId, method: req.method, path: req.originalUrl.split('?')[0], request_hash: requestHash })
+      .insert({
+        key,
+        user_id: userId,
+        method: req.method,
+        path: req.originalUrl.split('?')[0],
+        request_hash: requestHash,
+      })
       .onConflict(['user_id', 'key'])
       .ignore()
       .returning('key');
@@ -47,7 +53,13 @@ export function idempotent(db, opts = {}) {
               .where({ user_id: userId, key })
               .update({ response_status: res.statusCode, response_body: JSON.stringify(body) })
           : db('idempotency_keys').where({ user_id: userId, key }).delete(); // let the client retry
-      done.then(() => json(body), (err) => { req.log?.error({ err }, 'idempotency store failed'); json(body); });
+      done.then(
+        () => json(body),
+        (err) => {
+          req.log?.error({ err }, 'idempotency store failed');
+          json(body);
+        },
+      );
       return res;
     };
     next();

@@ -47,7 +47,9 @@ describe('audit diff', () => {
 
   it('never exposes secrets', () => {
     expect(redact({ password_hash: 'abc', totp_secret_enc: null, name: 'x' })).toEqual({
-      password_hash: '[redacted]', totp_secret_enc: null, name: 'x',
+      password_hash: '[redacted]',
+      totp_secret_enc: null,
+      name: 'x',
     });
     // Both sides redact to the same placeholder, so a password change leaks nothing.
     expect(diff({ password_hash: 'a' }, { password_hash: 'b' })).toBeNull();

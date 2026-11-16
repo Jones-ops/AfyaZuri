@@ -23,7 +23,8 @@ describe('kenyanPhone', () => {
   ])('normalises %s', (input, out) => expect(kenyanPhone.parse(input)).toBe(out));
 
   it.each(['0812345678', '+255712345678', '07123'])('rejects %s', (input) =>
-    expect(kenyanPhone.safeParse(input).success).toBe(false));
+    expect(kenyanPhone.safeParse(input).success).toBe(false),
+  );
 });
 
 describe('schemas', () => {

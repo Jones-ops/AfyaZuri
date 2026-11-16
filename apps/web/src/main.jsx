@@ -36,13 +36,54 @@ function App() {
     <Suspense fallback={<Spinner />}>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route element={<Protected><Layout /></Protected>}>
+        <Route
+          element={
+            <Protected>
+              <Layout />
+            </Protected>
+          }
+        >
           <Route index element={<Home />} />
-          <Route path="admin/users" element={<Protected perm="users.read"><Users /></Protected>} />
-          <Route path="admin/users/:id" element={<Protected perm="users.read"><UserDetail /></Protected>} />
-          <Route path="admin/roles" element={<Protected perm="roles.read"><Roles /></Protected>} />
-          <Route path="admin/facility" element={<Protected perm="facilities.read"><Facility /></Protected>} />
-          <Route path="admin/audit" element={<Protected perm="audit.read"><Audit /></Protected>} />
+          <Route
+            path="admin/users"
+            element={
+              <Protected perm="users.read">
+                <Users />
+              </Protected>
+            }
+          />
+          <Route
+            path="admin/users/:id"
+            element={
+              <Protected perm="users.read">
+                <UserDetail />
+              </Protected>
+            }
+          />
+          <Route
+            path="admin/roles"
+            element={
+              <Protected perm="roles.read">
+                <Roles />
+              </Protected>
+            }
+          />
+          <Route
+            path="admin/facility"
+            element={
+              <Protected perm="facilities.read">
+                <Facility />
+              </Protected>
+            }
+          />
+          <Route
+            path="admin/audit"
+            element={
+              <Protected perm="audit.read">
+                <Audit />
+              </Protected>
+            }
+          />
           <Route path="account" element={<Account />} />
           <Route path="*" element={<p className="p-6 text-sm">Page not found.</p>} />
         </Route>

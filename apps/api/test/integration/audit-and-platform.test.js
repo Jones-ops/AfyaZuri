@@ -58,10 +58,12 @@ describe('outbox event bus', () => {
     const type = `test.${uniq()}`;
     ctx.bus.subscribe(type, handler);
     await ctx.db.transaction((trx) => ctx.bus.publish(trx, { type, aggregateType: 't', aggregateId: 'committed' }));
-    await ctx.db.transaction(async (trx) => {
-      await ctx.bus.publish(trx, { type, aggregateType: 't', aggregateId: 'rolled-back' });
-      await trx.rollback();
-    }).catch(() => {});
+    await ctx.db
+      .transaction(async (trx) => {
+        await ctx.bus.publish(trx, { type, aggregateType: 't', aggregateId: 'rolled-back' });
+        await trx.rollback();
+      })
+      .catch(() => {});
 
     while ((await ctx.bus.dispatchPending(ctx.db)) > 0);
     expect(handler).toHaveBeenCalledTimes(1);
@@ -70,7 +72,9 @@ describe('outbox event bus', () => {
 
   it('retries failed handlers with backoff', async () => {
     const type = `test.${uniq()}`;
-    ctx.bus.subscribe(type, async () => { throw new Error('SMS gateway down'); });
+    ctx.bus.subscribe(type, async () => {
+      throw new Error('SMS gateway down');
+    });
     await ctx.bus.publish(ctx.db, { type, aggregateType: 't', aggregateId: 'x' });
     await ctx.bus.dispatchPending(ctx.db);
     const e = await ctx.db('outbox_events').where({ event_type: type }).first();
@@ -81,11 +85,22 @@ describe('outbox event bus', () => {
 
 describe('phase 2 schema guarantees', () => {
   async function patientWithEncounter() {
-    const [p] = await ctx.db('patients').insert({
-      facility_id: main.id, mrn: uniq('MRN'), first_name: 'Akinyi', middle_name: 'Atieno', last_name: 'Odera', sex: 'female',
-      date_of_birth: '1990-05-01',
-    }).returning('*');
-    const [e] = await ctx.db('encounters').insert({ facility_id: main.id, patient_id: p.id, type: 'opd' }).returning('*');
+    const [p] = await ctx
+      .db('patients')
+      .insert({
+        facility_id: main.id,
+        mrn: uniq('MRN'),
+        first_name: 'Akinyi',
+        middle_name: 'Atieno',
+        last_name: 'Odera',
+        sex: 'female',
+        date_of_birth: '1990-05-01',
+      })
+      .returning('*');
+    const [e] = await ctx
+      .db('encounters')
+      .insert({ facility_id: main.id, patient_id: p.id, type: 'opd' })
+      .returning('*');
     const doctor = await ctx.db('users').where({ username: 'doctor' }).first('id');
     return { p, e, doctor };
   }
@@ -101,24 +116,46 @@ describe('phase 2 schema guarantees', () => {
 
   it('locks signed clinical notes and keeps addenda append-only', async () => {
     const { p, e, doctor } = await patientWithEncounter();
-    const [note] = await ctx.db('clinical_notes').insert({
-      facility_id: main.id, encounter_id: e.id, patient_id: p.id, note_type: 'soap', subjective: 'Headache x3 days',
-      author_id: doctor.id,
-    }).returning('*');
+    const [note] = await ctx
+      .db('clinical_notes')
+      .insert({
+        facility_id: main.id,
+        encounter_id: e.id,
+        patient_id: p.id,
+        note_type: 'soap',
+        subjective: 'Headache x3 days',
+        author_id: doctor.id,
+      })
+      .returning('*');
     await ctx.db('clinical_notes').where({ id: note.id }).update({ subjective: 'Headache x3 days, fever' }); // draft: ok
-    await ctx.db('clinical_notes').where({ id: note.id }).update({ status: 'signed', signed_at: ctx.db.fn.now(), signed_by: doctor.id });
-    await expect(ctx.db('clinical_notes').where({ id: note.id }).update({ plan: 'changed later' })).rejects.toThrow(/locked/);
+    await ctx
+      .db('clinical_notes')
+      .where({ id: note.id })
+      .update({ status: 'signed', signed_at: ctx.db.fn.now(), signed_by: doctor.id });
+    await expect(ctx.db('clinical_notes').where({ id: note.id }).update({ plan: 'changed later' })).rejects.toThrow(
+      /locked/,
+    );
     await expect(ctx.db('clinical_notes').where({ id: note.id }).delete()).rejects.toThrow(/cannot be deleted/);
 
-    const [add] = await ctx.db('clinical_note_addenda').insert({ facility_id: main.id, note_id: note.id, author_id: doctor.id, body: 'BP rechecked: 120/80' }).returning('id');
-    await expect(ctx.db('clinical_note_addenda').where({ id: add.id }).update({ body: 'x' })).rejects.toThrow(/append-only/);
+    const [add] = await ctx
+      .db('clinical_note_addenda')
+      .insert({ facility_id: main.id, note_id: note.id, author_id: doctor.id, body: 'BP rechecked: 120/80' })
+      .returning('id');
+    await expect(ctx.db('clinical_note_addenda').where({ id: add.id }).update({ body: 'x' })).rejects.toThrow(
+      /append-only/,
+    );
   });
 
   it('rejects implausible vitals and cross-facility links', async () => {
     const { p, e, doctor } = await patientWithEncounter();
-    await expect(ctx.db('triage_vitals').insert({ facility_id: main.id, encounter_id: e.id, patient_id: p.id, recorded_by: doctor.id, spo2: 140 }))
-      .rejects.toThrow(/check constraint/);
+    await expect(
+      ctx
+        .db('triage_vitals')
+        .insert({ facility_id: main.id, encounter_id: e.id, patient_id: p.id, recorded_by: doctor.id, spo2: 140 }),
+    ).rejects.toThrow(/check constraint/);
     const hc = await ctx.db('facilities').where({ kmhfl_code: '99002' }).first('id');
-    await expect(ctx.db('encounters').insert({ facility_id: hc.id, patient_id: p.id, type: 'opd' })).rejects.toThrow(/foreign key/);
+    await expect(ctx.db('encounters').insert({ facility_id: hc.id, patient_id: p.id, type: 'opd' })).rejects.toThrow(
+      /foreign key/,
+    );
   });
 });

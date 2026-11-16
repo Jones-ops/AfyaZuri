@@ -136,7 +136,9 @@ export default function Layout() {
             ))}
           </ul>
         </nav>
-        {menuOpen && <div className="fixed inset-0 top-14 z-10 bg-slate-900/30 lg:hidden" onClick={() => setMenuOpen(false)} />}
+        {menuOpen && (
+          <div className="fixed inset-0 top-14 z-10 bg-slate-900/30 lg:hidden" onClick={() => setMenuOpen(false)} />
+        )}
         <main id="main" className="min-w-0 flex-1 p-4 sm:p-6">
           <Outlet />
         </main>

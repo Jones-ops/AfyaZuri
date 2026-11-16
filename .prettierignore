@@ -1,0 +1,11 @@
+node_modules
+dist
+dev-dist
+.pgdata
+data
+backups
+package-lock.json
+AfyaZuri_Build_Prompt.md
+docs/permission-matrix.md
+playwright-report
+test-results

@@ -1,0 +1,33 @@
+# systemd unit for an on-premise Afyazuri server (no Docker).
+# Install:  sudo cp deploy/linux/afyazuri.service /etc/systemd/system/
+#           sudo systemctl daemon-reload && sudo systemctl enable --now afyazuri
+# Logs:     journalctl -u afyazuri -f
+[Unit]
+Description=Afyazuri Hospital Management System
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# PostgreSQL refuses to run as root: use a dedicated unprivileged account.
+User=afyazuri
+Group=afyazuri
+WorkingDirectory=/opt/afyazuri
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node scripts/start.js
+Restart=always
+RestartSec=5
+# Give the API and PostgreSQL time to shut down cleanly.
+TimeoutStopSec=30
+KillSignal=SIGTERM
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/afyazuri/data /opt/afyazuri/backups
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

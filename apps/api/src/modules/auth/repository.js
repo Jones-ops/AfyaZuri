@@ -42,7 +42,10 @@ export async function accessibleFacilities(db, grants) {
 
 /** @param {import('knex').Knex} db @param {string} sessionId @param {string} reason */
 export const revokeSession = (db, sessionId, reason) =>
-  db('sessions').where({ id: sessionId }).whereNull('revoked_at').update({ revoked_at: db.fn.now(), revoked_reason: reason });
+  db('sessions')
+    .where({ id: sessionId })
+    .whereNull('revoked_at')
+    .update({ revoked_at: db.fn.now(), revoked_reason: reason });
 
 /** @param {import('knex').Knex} db @param {string} userId @param {string} reason @param {string} [exceptSessionId] */
 export function revokeUserSessions(db, userId, reason, exceptSessionId) {

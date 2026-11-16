@@ -6,7 +6,7 @@ import { initReactI18next } from 'react-i18next';
 const resources = {
   en: {
     translation: {
-      appName: 'AfyaZuri',
+      appName: 'Afyazuri',
       tagline: 'Every department on one system',
       signIn: 'Sign in',
       signingIn: 'Signing in…',
@@ -16,12 +16,19 @@ const resources = {
       totpCode: 'Authenticator code',
       online: 'Online',
       offline: 'Offline',
-      nav: { home: 'Home', users: 'Staff', roles: 'Roles & permissions', facility: 'Facility setup', audit: 'Audit log', account: 'My account' },
+      nav: {
+        home: 'Home',
+        users: 'Staff',
+        roles: 'Roles & permissions',
+        facility: 'Facility setup',
+        audit: 'Audit log',
+        account: 'My account',
+      },
     },
   },
   sw: {
     translation: {
-      appName: 'AfyaZuri',
+      appName: 'Afyazuri',
       tagline: 'Idara zote katika mfumo mmoja',
       signIn: 'Ingia',
       signingIn: 'Inaingia…',
@@ -31,7 +38,14 @@ const resources = {
       totpCode: 'Nambari ya uthibitisho',
       online: 'Mtandaoni',
       offline: 'Nje ya mtandao',
-      nav: { home: 'Nyumbani', users: 'Wafanyakazi', roles: 'Majukumu na ruhusa', facility: 'Mpangilio wa kituo', audit: 'Kumbukumbu za ukaguzi', account: 'Akaunti yangu' },
+      nav: {
+        home: 'Nyumbani',
+        users: 'Wafanyakazi',
+        roles: 'Majukumu na ruhusa',
+        facility: 'Mpangilio wa kituo',
+        audit: 'Kumbukumbu za ukaguzi',
+        account: 'Akaunti yangu',
+      },
     },
   },
 };

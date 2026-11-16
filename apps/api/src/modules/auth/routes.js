@@ -19,7 +19,9 @@ export function authRoutes(deps) {
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     handler: (_req, res) =>
-      res.status(429).json({ error: { code: 'RATE_LIMITED', message: 'Too many attempts. Wait a minute and try again.', details: null } }),
+      res.status(429).json({
+        error: { code: 'RATE_LIMITED', message: 'Too many attempts. Wait a minute and try again.', details: null },
+      }),
   });
   const auth = authenticate(deps);
   const authPending = authenticate(deps, { allowPending: true });
@@ -51,11 +53,15 @@ export function authRoutes(deps) {
         const c = verifyAccessToken(config, at, { ignoreExpiration: true });
         sessionId = c.sid;
         userId = c.sub;
-      } catch { /* fall through */ }
+      } catch {
+        /* fall through */
+      }
     }
     if (!sessionId && req.cookies?.[REFRESH_COOKIE]) {
-      const row = await db('refresh_tokens as rt').join('sessions as s', 's.id', 'rt.session_id')
-        .where('rt.token_hash', sha256(req.cookies[REFRESH_COOKIE])).first('s.id', 's.user_id');
+      const row = await db('refresh_tokens as rt')
+        .join('sessions as s', 's.id', 'rt.session_id')
+        .where('rt.token_hash', sha256(req.cookies[REFRESH_COOKIE]))
+        .first('s.id', 's.user_id');
       sessionId = row?.id ?? null;
       userId = row?.user_id ?? null;
     }
@@ -64,7 +70,9 @@ export function authRoutes(deps) {
       if (n) {
         const u = await db('users').where({ id: userId }).first('username');
         await recordAudit(db, { userId, username: u?.username, roles: [], facilityId: null }, requestMeta(req), {
-          action: 'logout', entityType: 'session', entityId: sessionId,
+          action: 'logout',
+          entityType: 'session',
+          entityId: sessionId,
         });
       }
     }

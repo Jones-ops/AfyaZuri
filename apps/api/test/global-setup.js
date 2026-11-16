@@ -15,7 +15,14 @@ export default async function setup({ provide }) {
     const { default: EmbeddedPostgres } = await import('embedded-postgres');
     dir = mkdtempSync(join(tmpdir(), 'afyazuri-pg-'));
     const port = 55000 + Math.floor(Math.random() * 2000);
-    pg = new EmbeddedPostgres({ databaseDir: dir, port, user: 'postgres', password: 'postgres', persistent: false, onLog: () => {} });
+    pg = new EmbeddedPostgres({
+      databaseDir: dir,
+      port,
+      user: 'postgres',
+      password: 'postgres',
+      persistent: false,
+      onLog: () => {},
+    });
     await pg.initialise();
     await pg.start();
     await pg.createDatabase('afyazuri_test');

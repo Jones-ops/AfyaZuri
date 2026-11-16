@@ -24,7 +24,7 @@ function refreshSession() {
   refreshing ??= fetch(`${BASE}/auth/refresh`, {
     method: 'POST',
     credentials: 'include',
-    headers: { 'X-AfyaZuri-Client': '1' },
+    headers: { 'X-Afyazuri-Client': '1' },
   }).finally(() => {
     refreshing = null;
   });
@@ -44,7 +44,7 @@ async function request(method, path, body, opts = {}) {
       method,
       credentials: 'include',
       headers: {
-        'X-AfyaZuri-Client': '1',
+        'X-Afyazuri-Client': '1',
         ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
         ...opts.headers,
       },

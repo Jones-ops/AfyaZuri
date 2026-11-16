@@ -134,13 +134,25 @@ export const CLINICAL_PERMISSIONS = Object.freeze(
  * Expand a list of exact codes and `prefix.` wildcards into permission codes.
  * @param {string[]} items
  */
-const pick = (items) =>
-  ALL_PERMISSIONS.filter((p) => items.some((x) => (x.endsWith('.') ? p.startsWith(x) : p === x)));
+const pick = (items) => ALL_PERMISSIONS.filter((p) => items.some((x) => (x.endsWith('.') ? p.startsWith(x) : p === x)));
 
 const CLINICIAN = [
-  'dashboard.read', 'patients.read', 'patients.update', 'patients.consent.manage',
-  'emr.', 'opd.', 'orders.', 'ipd.read', 'ipd.admit', 'ipd.transfer', 'ipd.discharge',
-  'ipd.nursing.write', 'lab.read', 'imaging.read', 'pharmacy.read', 'reports.clinical.read',
+  'dashboard.read',
+  'patients.read',
+  'patients.update',
+  'patients.consent.manage',
+  'emr.',
+  'opd.',
+  'orders.',
+  'ipd.read',
+  'ipd.admit',
+  'ipd.transfer',
+  'ipd.discharge',
+  'ipd.nursing.write',
+  'lab.read',
+  'imaging.read',
+  'pharmacy.read',
+  'reports.clinical.read',
 ];
 
 /**
@@ -160,11 +172,27 @@ export const ROLES = {
     description: 'Administers one facility: staff, setup, catalogues and price lists.',
     clinical: false,
     permissions: pick([
-      'facilities.', 'users.', 'roles.read', 'audit.', 'settings.manage', 'dashboard.read',
-      'patients.read', 'patients.merge', 'patients.export', 'ipd.read', 'ipd.beds.manage',
-      'billing.read', 'billing.pricelist.manage', 'lab.catalogue.manage', 'imaging.catalogue.manage',
-      'pharmacy.rules.manage', 'inventory.read', 'inventory.items.manage', 'claims.read',
-      'claims.payers.manage', 'reports.',
+      'facilities.',
+      'users.',
+      'roles.read',
+      'audit.',
+      'settings.manage',
+      'dashboard.read',
+      'patients.read',
+      'patients.merge',
+      'patients.export',
+      'ipd.read',
+      'ipd.beds.manage',
+      'billing.read',
+      'billing.pricelist.manage',
+      'lab.catalogue.manage',
+      'imaging.catalogue.manage',
+      'pharmacy.rules.manage',
+      'inventory.read',
+      'inventory.items.manage',
+      'claims.read',
+      'claims.payers.manage',
+      'reports.',
     ]),
   },
   records_clerk: {
@@ -172,8 +200,14 @@ export const ROLES = {
     description: 'Registers patients and checks them in.',
     clinical: false,
     permissions: pick([
-      'patients.read', 'patients.create', 'patients.update', 'patients.consent.manage',
-      'opd.checkin', 'opd.queue.read', 'opd.queue.manage', 'claims.eligibility.check',
+      'patients.read',
+      'patients.create',
+      'patients.update',
+      'patients.consent.manage',
+      'opd.checkin',
+      'opd.queue.read',
+      'opd.queue.manage',
+      'claims.eligibility.check',
     ]),
   },
   triage_nurse: {
@@ -181,8 +215,16 @@ export const ROLES = {
     description: 'Records vitals and routes patients from triage.',
     clinical: true,
     permissions: pick([
-      'dashboard.read', 'patients.read', 'emr.read', 'emr.vitals.write', 'emr.notes.write',
-      'emr.notes.sign', 'emr.allergies.write', 'emr.break_glass', 'opd.queue.read', 'opd.queue.manage',
+      'dashboard.read',
+      'patients.read',
+      'emr.read',
+      'emr.vitals.write',
+      'emr.notes.write',
+      'emr.notes.sign',
+      'emr.allergies.write',
+      'emr.break_glass',
+      'opd.queue.read',
+      'opd.queue.manage',
     ]),
   },
   doctor: {
@@ -202,10 +244,23 @@ export const ROLES = {
     description: 'Inpatient nursing care, vitals and medication administration.',
     clinical: true,
     permissions: pick([
-      'dashboard.read', 'patients.read', 'emr.read', 'emr.vitals.write', 'emr.notes.write',
-      'emr.notes.sign', 'emr.allergies.write', 'emr.attachments.write', 'emr.break_glass',
-      'ipd.read', 'ipd.transfer', 'ipd.nursing.write', 'ipd.mar.write', 'ipd.beds.manage',
-      'inventory.read', 'inventory.requisition.create', 'inventory.receive',
+      'dashboard.read',
+      'patients.read',
+      'emr.read',
+      'emr.vitals.write',
+      'emr.notes.write',
+      'emr.notes.sign',
+      'emr.allergies.write',
+      'emr.attachments.write',
+      'emr.break_glass',
+      'ipd.read',
+      'ipd.transfer',
+      'ipd.nursing.write',
+      'ipd.mar.write',
+      'ipd.beds.manage',
+      'inventory.read',
+      'inventory.requisition.create',
+      'inventory.receive',
     ]),
   },
   pharmacist: {
@@ -213,8 +268,14 @@ export const ROLES = {
     description: 'Dispenses, manages pharmacy rules and pharmacy stock.',
     clinical: true,
     permissions: pick([
-      'dashboard.read', 'patients.read', 'emr.read', 'pharmacy.', 'inventory.read',
-      'inventory.requisition.create', 'inventory.receive', 'inventory.stocktake.perform',
+      'dashboard.read',
+      'patients.read',
+      'emr.read',
+      'pharmacy.',
+      'inventory.read',
+      'inventory.requisition.create',
+      'inventory.receive',
+      'inventory.stocktake.perform',
       'reports.operational.read',
     ]),
   },
@@ -223,8 +284,13 @@ export const ROLES = {
     description: 'Dispenses under pharmacist supervision and sells OTC.',
     clinical: false,
     permissions: pick([
-      'patients.read', 'pharmacy.read', 'pharmacy.dispense', 'pharmacy.otc.sell',
-      'inventory.read', 'inventory.requisition.create', 'inventory.receive',
+      'patients.read',
+      'pharmacy.read',
+      'pharmacy.dispense',
+      'pharmacy.otc.sell',
+      'inventory.read',
+      'inventory.requisition.create',
+      'inventory.receive',
     ]),
   },
   lab_technologist: {
@@ -232,8 +298,14 @@ export const ROLES = {
     description: 'Collects and receives samples and enters results.',
     clinical: true,
     permissions: pick([
-      'patients.read', 'lab.read', 'lab.samples.collect', 'lab.samples.receive', 'lab.results.enter',
-      'inventory.read', 'inventory.requisition.create', 'inventory.receive',
+      'patients.read',
+      'lab.read',
+      'lab.samples.collect',
+      'lab.samples.receive',
+      'lab.results.enter',
+      'inventory.read',
+      'inventory.requisition.create',
+      'inventory.receive',
     ]),
   },
   lab_supervisor: {
@@ -241,8 +313,14 @@ export const ROLES = {
     description: 'Verifies and releases results; manages the catalogue.',
     clinical: true,
     permissions: pick([
-      'dashboard.read', 'patients.read', 'emr.read', 'lab.', 'inventory.read',
-      'inventory.requisition.create', 'inventory.receive', 'inventory.stocktake.perform',
+      'dashboard.read',
+      'patients.read',
+      'emr.read',
+      'lab.',
+      'inventory.read',
+      'inventory.requisition.create',
+      'inventory.receive',
+      'inventory.stocktake.perform',
       'reports.operational.read',
     ]),
   },
@@ -263,8 +341,12 @@ export const ROLES = {
     description: 'Receives payments and runs a cashier shift.',
     clinical: false,
     permissions: pick([
-      'patients.read', 'billing.read', 'billing.payment.receive', 'billing.shift.manage',
-      'billing.refund.request', 'billing.waiver.request',
+      'patients.read',
+      'billing.read',
+      'billing.payment.receive',
+      'billing.shift.manage',
+      'billing.refund.request',
+      'billing.waiver.request',
     ]),
   },
   billing_officer: {
@@ -272,10 +354,19 @@ export const ROLES = {
     description: 'Manages bills, invoices, manual charges and approvals.',
     clinical: false,
     permissions: pick([
-      'dashboard.read', 'patients.read', 'billing.read', 'billing.charge.manual',
-      'billing.invoice.create', 'billing.refund.request', 'billing.waiver.request',
-      'billing.waiver.approve', 'billing.payment.receive', 'claims.read',
-      'claims.eligibility.check', 'reports.financial.read', 'reports.export',
+      'dashboard.read',
+      'patients.read',
+      'billing.read',
+      'billing.charge.manual',
+      'billing.invoice.create',
+      'billing.refund.request',
+      'billing.waiver.request',
+      'billing.waiver.approve',
+      'billing.payment.receive',
+      'claims.read',
+      'claims.eligibility.check',
+      'reports.financial.read',
+      'reports.export',
     ]),
   },
   claims_officer: {
@@ -283,9 +374,18 @@ export const ROLES = {
     description: 'Eligibility, preauthorization, claims and remittances.',
     clinical: false,
     permissions: pick([
-      'dashboard.read', 'patients.read', 'billing.read', 'billing.invoice.create', 'claims.read',
-      'claims.eligibility.check', 'claims.preauth.request', 'claims.create', 'claims.submit',
-      'claims.remittance.reconcile', 'reports.financial.read', 'reports.export',
+      'dashboard.read',
+      'patients.read',
+      'billing.read',
+      'billing.invoice.create',
+      'claims.read',
+      'claims.eligibility.check',
+      'claims.preauth.request',
+      'claims.create',
+      'claims.submit',
+      'claims.remittance.reconcile',
+      'reports.financial.read',
+      'reports.export',
     ]),
   },
   storekeeper: {
@@ -293,9 +393,17 @@ export const ROLES = {
     description: 'Runs the main store: GRNs, issues, purchase orders and stock takes.',
     clinical: false,
     permissions: pick([
-      'dashboard.read', 'inventory.read', 'inventory.items.manage', 'inventory.requisition.create',
-      'inventory.requisition.approve', 'inventory.issue', 'inventory.receive', 'inventory.po.manage',
-      'inventory.stocktake.perform', 'reports.operational.read', 'reports.export',
+      'dashboard.read',
+      'inventory.read',
+      'inventory.items.manage',
+      'inventory.requisition.create',
+      'inventory.requisition.approve',
+      'inventory.issue',
+      'inventory.receive',
+      'inventory.po.manage',
+      'inventory.stocktake.perform',
+      'reports.operational.read',
+      'reports.export',
     ]),
   },
   accountant: {
@@ -303,9 +411,17 @@ export const ROLES = {
     description: 'Finance oversight: approvals, reconciliation and financial reports.',
     clinical: false,
     permissions: pick([
-      'dashboard.read', 'billing.read', 'billing.refund.approve', 'billing.waiver.approve',
-      'claims.read', 'claims.remittance.reconcile', 'inventory.read', 'inventory.stocktake.approve',
-      'reports.financial.read', 'reports.operational.read', 'reports.export',
+      'dashboard.read',
+      'billing.read',
+      'billing.refund.approve',
+      'billing.waiver.approve',
+      'claims.read',
+      'claims.remittance.reconcile',
+      'inventory.read',
+      'inventory.stocktake.approve',
+      'reports.financial.read',
+      'reports.operational.read',
+      'reports.export',
     ]),
   },
   facility_manager: {
@@ -321,7 +437,11 @@ export const ROLE_CODES = Object.freeze(Object.keys(ROLES));
 
 /** Roles that must enrol TOTP 2FA before using the system. */
 export const TWO_FACTOR_ROLES = Object.freeze([
-  'super_admin', 'facility_admin', 'accountant', 'billing_officer', 'claims_officer',
+  'super_admin',
+  'facility_admin',
+  'accountant',
+  'billing_officer',
+  'claims_officer',
 ]);
 
 /**
@@ -350,8 +470,7 @@ export function hasPermission(grants, permission, scope = {}) {
   return grants.some((g) => {
     if (!g.permissions.includes(permission)) return false;
     if (g.facilityId !== null && g.facilityId !== facilityId) return false;
-    if (departmentId !== undefined && g.departmentId !== null && g.departmentId !== departmentId)
-      return false;
+    if (departmentId !== undefined && g.departmentId !== null && g.departmentId !== departmentId) return false;
     return true;
   });
 }

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
-  ALL_PERMISSIONS, CLINICAL_PERMISSIONS, ROLES, effectivePermissions, grantedDepartments, hasGlobalPermission,
+  ALL_PERMISSIONS,
+  CLINICAL_PERMISSIONS,
+  ROLES,
+  effectivePermissions,
+  grantedDepartments,
+  hasGlobalPermission,
   hasPermission,
 } from '../src/permissions.js';
 
@@ -39,7 +44,12 @@ describe('role matrix', () => {
 
 describe('hasPermission', () => {
   const grants = [
-    { role: 'lab_technologist', facilityId: F1, departmentId: LAB, permissions: ['lab.results.enter', 'patients.read'] },
+    {
+      role: 'lab_technologist',
+      facilityId: F1,
+      departmentId: LAB,
+      permissions: ['lab.results.enter', 'patients.read'],
+    },
     { role: 'doctor', facilityId: F2, departmentId: null, permissions: ['emr.read'] },
   ];
 
@@ -77,7 +87,9 @@ describe('grantedDepartments and effectivePermissions', () => {
     ];
     expect(grantedDepartments(g, 'x', F1).sort()).toEqual([LAB, OPD].sort());
     expect(grantedDepartments(g, 'x', F2)).toEqual([]);
-    expect(grantedDepartments([...g, { role: 'c', facilityId: F1, departmentId: null, permissions: ['x'] }], 'x', F1)).toBeNull();
+    expect(
+      grantedDepartments([...g, { role: 'c', facilityId: F1, departmentId: null, permissions: ['x'] }], 'x', F1),
+    ).toBeNull();
   });
 
   it('unions permissions at a facility', () => {

@@ -19,10 +19,17 @@ const pg = new EmbeddedPostgres({
 if (!existsSync(resolve(dataDir, 'PG_VERSION'))) await pg.initialise();
 await pg.start();
 for (const db of ['afyazuri', 'afyazuri_test']) {
-  try { await pg.createDatabase(db); } catch { /* already exists */ }
+  try {
+    await pg.createDatabase(db);
+  } catch {
+    /* already exists */
+  }
 }
 console.log(`PostgreSQL running on localhost:${port} (user postgres / postgres). Ctrl+C to stop.`);
-const stop = async () => { await pg.stop(); process.exit(0); };
+const stop = async () => {
+  await pg.stop();
+  process.exit(0);
+};
 process.on('SIGINT', stop);
 process.on('SIGTERM', stop);
 if (process.argv.includes('--once')) await stop();

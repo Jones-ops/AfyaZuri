@@ -53,14 +53,27 @@ export default function Login() {
           {reason && REASONS[reason] && <Alert kind="info">{REASONS[reason]}</Alert>}
           {login.error && login.error.code !== 'MFA_REQUIRED' && <ErrorMessage error={login.error} />}
           <Field label={t('username')} error={errors.username?.message}>
-            <input className="input" autoComplete="username" autoCapitalize="none" autoFocus {...form.register('username')} />
+            <input
+              className="input"
+              autoComplete="username"
+              autoCapitalize="none"
+              autoFocus
+              {...form.register('username')}
+            />
           </Field>
           <Field label={t('password')} error={errors.password?.message}>
             <input className="input" type="password" autoComplete="current-password" {...form.register('password')} />
           </Field>
           {needTotp && (
             <Field label={t('totpCode')} hint="6 digits from your authenticator app" error={errors.totp?.message}>
-              <input className="input tracking-widest" inputMode="numeric" autoComplete="one-time-code" maxLength={6} autoFocus {...form.register('totp')} />
+              <input
+                className="input tracking-widest"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                autoFocus
+                {...form.register('totp')}
+              />
             </Field>
           )}
           <button type="submit" className="btn-primary w-full" disabled={login.isPending}>

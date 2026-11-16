@@ -8,7 +8,7 @@ import { FieldCrypto } from '../src/lib/crypto.js';
 import { EventBus } from '../src/lib/events.js';
 import { createLogger } from '../src/lib/logger.js';
 
-export const DEMO_PASSWORD = 'AfyaZuri#2026';
+export const DEMO_PASSWORD = 'Afyazuri#2026';
 
 const keys = {
   JWT_SECRET: randomBytes(48).toString('hex'),
@@ -22,8 +22,13 @@ const keys = {
  */
 export function makeApp(env = {}) {
   const config = loadConfig({
-    NODE_ENV: 'test', DATABASE_URL: inject('databaseUrl'), LOG_LEVEL: 'silent', AUTH_RATE_LIMIT_PER_MIN: '10000',
-    JOBS_ENABLED: 'false', ...keys, ...env,
+    NODE_ENV: 'test',
+    DATABASE_URL: inject('databaseUrl'),
+    LOG_LEVEL: 'silent',
+    AUTH_RATE_LIMIT_PER_MIN: '10000',
+    JOBS_ENABLED: 'false',
+    ...keys,
+    ...env,
   });
   const logger = createLogger({ level: 'silent' });
   const db = knex({ client: 'pg', connection: config.DATABASE_URL, pool: { min: 0, max: 5 } });
@@ -39,7 +44,7 @@ export function makeApp(env = {}) {
  */
 export function client(app) {
   const agent = request.agent(app);
-  const h = (r) => r.set('X-AfyaZuri-Client', '1');
+  const h = (r) => r.set('X-Afyazuri-Client', '1');
   return {
     agent,
     get: (url) => h(agent.get(url)),

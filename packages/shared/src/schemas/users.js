@@ -21,7 +21,10 @@ export const createUserBody = z.object({
   email: z.string().trim().email().max(254).optional().nullable(),
   phone: kenyanPhone.optional().nullable(),
   password: z.string().min(10).max(256),
-  licenceBody: z.enum(/** @type {[string, ...string[]]} */ (LICENCE_BODIES)).optional().nullable(),
+  licenceBody: z
+    .enum(/** @type {[string, ...string[]]} */ (LICENCE_BODIES))
+    .optional()
+    .nullable(),
   licenceNumber: z.string().trim().max(40).optional().nullable(),
   cadre: z.string().trim().max(80).optional().nullable(),
   mustChangePassword: z.boolean().default(true),
@@ -32,7 +35,10 @@ export const updateUserBody = z.object({
   fullName: z.string().trim().min(2).max(120).optional(),
   email: z.string().trim().email().max(254).optional().nullable(),
   phone: kenyanPhone.optional().nullable(),
-  licenceBody: z.enum(/** @type {[string, ...string[]]} */ (LICENCE_BODIES)).optional().nullable(),
+  licenceBody: z
+    .enum(/** @type {[string, ...string[]]} */ (LICENCE_BODIES))
+    .optional()
+    .nullable(),
   licenceNumber: z.string().trim().max(40).optional().nullable(),
   cadre: z.string().trim().max(80).optional().nullable(),
 });

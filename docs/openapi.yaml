@@ -1,0 +1,568 @@
+openapi: 3.1.0
+info:
+  title: Afyazuri API
+  version: 0.1.0
+  description: |
+    Phase 1 endpoints of the Afyazuri hospital management system. Conventions (cookies, CSRF header,
+    errors, pagination, idempotency) are described in docs/api.md.
+servers:
+  - url: /api/v1
+security:
+  - cookieAuth: []
+
+tags:
+  - name: Auth
+  - name: Users
+  - name: Facilities
+  - name: Audit
+
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Sign in
+      security: []
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string, minLength: 3, maxLength: 64 }
+                password: { type: string }
+                totp: { type: string, pattern: '^\d{6}$', description: Required when the account has 2FA }
+                facilityId: { type: string, format: uuid }
+      responses:
+        '200':
+          {
+            description: Signed in; az_at and az_rt cookies set,
+            content: { application/json: { schema: { $ref: '#/components/schemas/Ok' } } },
+          }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '423': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Rotate the refresh token and issue a new access token
+      security: [{ refreshCookie: [] }]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '200': { description: New cookies set }
+        '401': { $ref: '#/components/responses/Error' }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: End the session (works with an expired access token)
+      security: []
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses: { '200': { description: Signed out; cookies cleared } }
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Current user, facility, roles and effective permissions
+      responses:
+        '200':
+          description: Profile
+          content: { application/json: { schema: { $ref: '#/components/schemas/Me' } } }
+        '401': { $ref: '#/components/responses/Error' }
+  /auth/change-password:
+    post:
+      tags: [Auth]
+      summary: Change own password (ends the user's other sessions)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties: { currentPassword: { type: string }, newPassword: { type: string, minLength: 10 } }
+      responses: { '200': { description: Changed }, '400': { $ref: '#/components/responses/Error' } }
+  /auth/switch-facility:
+    post:
+      tags: [Auth]
+      summary: Change the session's active facility
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          {
+            application/json:
+              {
+                schema:
+                  { type: object, required: [facilityId], properties: { facilityId: { type: string, format: uuid } } },
+              },
+          }
+      responses: { '200': { description: Switched }, '403': { $ref: '#/components/responses/Error' } }
+  /auth/totp/setup:
+    post:
+      tags: [Auth]
+      summary: Start TOTP enrolment
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '200':
+          description: Secret and otpauth URL for an authenticator app
+          content:
+            {
+              application/json:
+                { schema: { type: object, properties: { secret: { type: string }, otpauthUrl: { type: string } } } },
+            }
+  /auth/totp/enable:
+    post:
+      tags: [Auth]
+      summary: Confirm enrolment with a code
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody: { $ref: '#/components/requestBodies/TotpCode' }
+      responses: { '200': { description: Enabled }, '400': { $ref: '#/components/responses/Error' } }
+  /auth/totp/disable:
+    post:
+      tags: [Auth]
+      summary: Turn off 2FA (requires a current code)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody: { $ref: '#/components/requestBodies/TotpCode' }
+      responses: { '200': { description: Disabled }, '400': { $ref: '#/components/responses/Error' } }
+
+  /roles:
+    get:
+      tags: [Users]
+      summary: Roles with permissions, and the permission catalogue
+      x-permissions: [roles.read]
+      responses: { '200': { description: Roles } }
+  /users:
+    get:
+      tags: [Users]
+      summary: Staff at the active facility (all staff for deployment admins)
+      x-permissions: [users.read]
+      parameters:
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+        - { name: q, in: query, schema: { type: string, maxLength: 80 }, description: Name or username contains }
+        - { name: role, in: query, schema: { type: string } }
+        - { name: status, in: query, schema: { type: string, enum: [active, disabled, all], default: active } }
+      responses:
+        '200':
+          description: Page of users
+          content:
+            {
+              application/json:
+                {
+                  schema:
+                    {
+                      type: object,
+                      properties:
+                        {
+                          data: { type: array, items: { $ref: '#/components/schemas/User' } },
+                          nextCursor: { type: [string, 'null'] },
+                        },
+                    },
+                },
+            }
+    post:
+      tags: [Users]
+      summary: Create a staff account
+      x-permissions: [users.manage]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CreateUser' } } }
+      responses:
+        '201':
+          { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /users/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [Users]
+      x-permissions: [users.read]
+      responses:
+        {
+          '200':
+            { description: User, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } },
+          '404': { $ref: '#/components/responses/Error' },
+        }
+    patch:
+      tags: [Users]
+      summary: Edit profile fields
+      x-permissions: [users.manage]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fullName: { type: string }
+                email: { type: [string, 'null'], format: email }
+                phone: { type: [string, 'null'], description: Kenyan number; normalised to +254 }
+                licenceBody: { type: [string, 'null'], enum: [KMPDC, NCK, PPB, KMLTTB, COC, RPB, OTHER, null] }
+                licenceNumber: { type: [string, 'null'] }
+                cadre: { type: [string, 'null'] }
+      responses: { '200': { description: Updated } }
+  /users/{id}/roles:
+    put:
+      tags: [Users]
+      summary: Replace role assignments (facility admins replace only their facility's)
+      x-permissions: [users.manage]
+      parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          {
+            application/json:
+              {
+                schema:
+                  {
+                    type: object,
+                    required: [roles],
+                    properties: { roles: { type: array, items: { $ref: '#/components/schemas/RoleAssignment' } } },
+                  },
+              },
+          }
+      responses: { '200': { description: Updated user } }
+  /users/{id}/disable:
+    post:
+      tags: [Users]
+      summary: Disable the account and end its sessions
+      x-permissions: [users.disable]
+      parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          {
+            application/json:
+              { schema: { type: object, required: [reason], properties: { reason: { type: string, minLength: 3 } } } },
+          }
+      responses: { '200': { description: Disabled } }
+  /users/{id}/enable:
+    post:
+      {
+        tags: [Users],
+        x-permissions: [users.disable],
+        parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }],
+        responses: { '200': { description: Enabled } },
+      }
+  /users/{id}/force-logout:
+    post:
+      tags: [Users]
+      x-permissions: [users.disable]
+      parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }]
+      responses:
+        {
+          '200':
+            {
+              description: Sessions ended,
+              content:
+                { application/json: { schema: { type: object, properties: { sessionsEnded: { type: integer } } } } },
+            },
+        }
+  /users/{id}/reset-password:
+    post:
+      tags: [Users]
+      summary: Set a temporary password (user must change it; sessions end)
+      x-permissions: [users.manage]
+      parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                { schema: { type: object, required: [password], properties: { password: { type: string } } } },
+            },
+        }
+      responses: { '200': { description: Reset } }
+  /users/{id}/unlock:
+    post:
+      {
+        tags: [Users],
+        x-permissions: [users.manage],
+        parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }],
+        responses: { '200': { description: Unlocked } },
+      }
+
+  /facilities:
+    get:
+      {
+        tags: [Facilities],
+        summary: Facilities the user can access,
+        x-permissions: [facilities.read],
+        responses: { '200': { description: List } },
+      }
+    post:
+      tags: [Facilities]
+      summary: Add a facility (deployment admins only)
+      x-permissions: [facilities.manage (deployment-wide)]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, kmhflCode, level, ownership]
+              properties:
+                name: { type: string }
+                kmhflCode: { type: string, pattern: '^\d{4,6}$' }
+                level: { type: string, enum: [level_2, level_3, level_4, level_5, level_6] }
+                ownership: { type: string, enum: [moh, county, faith_based, private, ngo] }
+                countyCode: { type: [string, 'null'] }
+                mrnFormat: { type: string, default: '{facility_code}-{year}-{seq}' }
+      responses: { '201': { description: Created }, '403': { $ref: '#/components/responses/Error' } }
+  /facilities/current:
+    get:
+      { tags: [Facilities], x-permissions: [facilities.read], responses: { '200': { description: Active facility } } }
+  /facilities/{id}:
+    patch:
+      {
+        tags: [Facilities],
+        x-permissions: [facilities.manage],
+        parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }],
+        responses: { '200': { description: Updated } },
+      }
+  /departments:
+    get:
+      {
+        tags: [Facilities],
+        x-permissions: [facilities.read],
+        responses: { '200': { description: Departments of the active facility } },
+      }
+    post:
+      {
+        tags: [Facilities],
+        x-permissions: [facilities.manage],
+        parameters: [{ $ref: '#/components/parameters/Csrf' }],
+        responses: { '201': { description: Created } },
+      }
+  /departments/{id}:
+    patch:
+      {
+        tags: [Facilities],
+        x-permissions: [facilities.manage],
+        parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }],
+        responses: { '200': { description: Updated } },
+      }
+  /service-points:
+    get: { tags: [Facilities], x-permissions: [facilities.read], responses: { '200': { description: Service points } } }
+    post:
+      {
+        tags: [Facilities],
+        x-permissions: [facilities.manage],
+        parameters: [{ $ref: '#/components/parameters/Csrf' }],
+        responses: { '201': { description: Created } },
+      }
+  /service-points/{id}:
+    patch:
+      {
+        tags: [Facilities],
+        x-permissions: [facilities.manage],
+        parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }],
+        responses: { '200': { description: Updated } },
+      }
+  /wards:
+    get:
+      {
+        tags: [Facilities],
+        summary: Wards with bed counts by status,
+        x-permissions: [facilities.read, ipd.read],
+        responses: { '200': { description: Wards } },
+      }
+    post:
+      {
+        tags: [Facilities],
+        x-permissions: [facilities.manage],
+        parameters: [{ $ref: '#/components/parameters/Csrf' }],
+        responses: { '201': { description: Created } },
+      }
+  /wards/{id}:
+    patch:
+      {
+        tags: [Facilities],
+        x-permissions: [facilities.manage],
+        parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }],
+        responses: { '200': { description: Updated } },
+      }
+  /wards/{id}/beds:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get: { tags: [Facilities], x-permissions: [facilities.read, ipd.read], responses: { '200': { description: Beds } } }
+    post:
+      {
+        tags: [Facilities],
+        x-permissions: [facilities.manage],
+        parameters: [{ $ref: '#/components/parameters/Csrf' }],
+        responses: { '201': { description: Created } },
+      }
+  /beds/{id}/status:
+    patch:
+      tags: [Facilities]
+      summary: Housekeeping status (occupancy is set only by admissions)
+      x-permissions: [facilities.manage, ipd.beds.manage]
+      parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                {
+                  schema:
+                    {
+                      type: object,
+                      required: [status],
+                      properties: { status: { type: string, enum: [available, reserved, cleaning, out_of_service] } },
+                    },
+                },
+            },
+        }
+      responses: { '200': { description: Updated }, '400': { $ref: '#/components/responses/Error' } }
+  /settings:
+    get:
+      {
+        tags: [Facilities],
+        summary: Facility settings merged over deployment defaults,
+        x-permissions: [settings.manage, facilities.read],
+        responses: { '200': { description: Settings map } },
+      }
+  /settings/{key}:
+    put:
+      tags: [Facilities]
+      x-permissions: [settings.manage]
+      parameters:
+        - { name: key, in: path, required: true, schema: { type: string, pattern: '^[a-z][a-z0-9_.]{2,80}$' } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        {
+          required: true,
+          content: { application/json: { schema: { type: object, required: [value], properties: { value: {} } } } },
+        }
+      responses: { '200': { description: Saved } }
+
+  /audit:
+    get:
+      tags: [Audit]
+      summary: Audit entries (newest first)
+      x-permissions: [audit.read]
+      parameters: &auditFilters
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+        - { name: userId, in: query, schema: { type: string, format: uuid } }
+        - { name: patientId, in: query, schema: { type: string, format: uuid } }
+        - { name: action, in: query, schema: { type: string } }
+        - { name: entityType, in: query, schema: { type: string } }
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+      responses: { '200': { description: Page of audit entries } }
+  /audit/export:
+    get:
+      tags: [Audit]
+      summary: CSV export (max 100 000 rows; the export is itself audited)
+      x-permissions: [audit.export]
+      parameters: *auditFilters
+      responses: { '200': { description: CSV, content: { text/csv: {} } } }
+
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: az_at }
+    refreshCookie: { type: apiKey, in: cookie, name: az_rt }
+  parameters:
+    Csrf: { name: X-Afyazuri-Client, in: header, required: true, schema: { type: string, const: '1' } }
+    IdempotencyKey:
+      {
+        name: Idempotency-Key,
+        in: header,
+        required: false,
+        schema: { type: string, pattern: '^[A-Za-z0-9_-]{8,100}$' },
+      }
+    Id: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+    Cursor: { name: cursor, in: query, schema: { type: string } }
+  requestBodies:
+    TotpCode:
+      required: true
+      content:
+        {
+          application/json:
+            { schema: { type: object, required: [code], properties: { code: { type: string, pattern: '^\d{6}$' } } } },
+        }
+  responses:
+    Error:
+      description: Error
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+  schemas:
+    Ok: { type: object, properties: { ok: { type: boolean } } }
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties: { code: { type: string }, message: { type: string }, details: {} }
+    RoleAssignment:
+      type: object
+      required: [role, facilityId]
+      properties:
+        role: { type: string, description: Role code, e.g. triage_nurse }
+        facilityId:
+          { type: [string, 'null'], format: uuid, description: null = every facility (deployment admins only) }
+        departmentId: { type: [string, 'null'], format: uuid, description: null = every department }
+    CreateUser:
+      type: object
+      required: [username, fullName, password, roles]
+      properties:
+        username: { type: string, pattern: '^[a-z0-9._-]{3,64}$' }
+        fullName: { type: string }
+        email: { type: [string, 'null'], format: email }
+        phone: { type: [string, 'null'] }
+        password: { type: string, minLength: 10 }
+        licenceBody: { type: [string, 'null'] }
+        licenceNumber: { type: [string, 'null'] }
+        cadre: { type: [string, 'null'] }
+        mustChangePassword: { type: boolean, default: true }
+        roles: { type: array, minItems: 1, items: { $ref: '#/components/schemas/RoleAssignment' } }
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        username: { type: string }
+        fullName: { type: string }
+        email: { type: [string, 'null'] }
+        phone: { type: [string, 'null'] }
+        status: { type: string, enum: [active, disabled] }
+        locked: { type: boolean }
+        mustChangePassword: { type: boolean }
+        totpEnabled: { type: boolean }
+        licenceBody: { type: [string, 'null'] }
+        licenceNumber: { type: [string, 'null'] }
+        cadre: { type: [string, 'null'] }
+        lastLoginAt: { type: [string, 'null'], format: date-time }
+        roles:
+          type: array
+          items:
+            type: object
+            properties:
+              role: { type: string }
+              roleName: { type: string }
+              facilityId: { type: [string, 'null'] }
+              facilityName: { type: [string, 'null'] }
+              departmentId: { type: [string, 'null'] }
+              departmentName: { type: [string, 'null'] }
+    Me:
+      type: object
+      properties:
+        user: { type: object }
+        facility:
+          {
+            type: [object, 'null'],
+            properties: { id: { type: string }, name: { type: string }, kmhflCode: { type: string } },
+          }
+        facilities: { type: array, items: { type: object } }
+        roles: { type: array, items: { type: string } }
+        permissions: { type: array, items: { type: string } }
+        session: { type: object, properties: { idleMinutes: { type: integer }, require2fa: { type: boolean } } }
