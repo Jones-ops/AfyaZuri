@@ -1,0 +1,44 @@
+{
+  "name": "afyazuri",
+  "private": true,
+  "type": "module",
+  "description": "AfyaZuri — integrated Hospital Management System for Kenyan health facilities",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/api & npm run dev --workspace=apps/web",
+    "dev:api": "npm run dev --workspace=apps/api",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspace=apps/web",
+    "db:migrate": "knex --knexfile knexfile.js migrate:latest",
+    "db:rollback": "knex --knexfile knexfile.js migrate:rollback",
+    "db:seed": "knex --knexfile knexfile.js seed:run",
+    "db:local": "node scripts/local-postgres.js",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "embedded-postgres": "16.15.0-beta.19",
+    "eslint": "^9.17.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "globals": "^15.14.0",
+    "prettier": "^3.4.2",
+    "supertest": "^7.0.0",
+    "vitest": "^3.2.7"
+  },
+  "allowScripts": {
+    "@embedded-postgres/windows-x64@16.15.0-beta.19": true,
+    "esbuild@0.25.12": true,
+    "esbuild@0.28.2": true,
+    "argon2@0.41.1": true
+  }
+}
