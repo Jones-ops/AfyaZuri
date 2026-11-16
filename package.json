@@ -19,6 +19,7 @@
     "start": "node scripts/start.js",
     "admin:create": "node scripts/create-admin.js",
     "backup": "node scripts/backup.js",
+    "icd:import": "node scripts/import-icd11.js",
     "db:local": "node scripts/local-postgres.js",
     "db:migrate": "knex --knexfile knexfile.js migrate:latest",
     "db:rollback": "knex --knexfile knexfile.js migrate:rollback",

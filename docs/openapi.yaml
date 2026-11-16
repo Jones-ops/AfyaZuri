@@ -17,6 +17,7 @@ tags:
   - name: Audit
   - name: Patients
   - name: OPD
+  - name: EMR
 
 paths:
   /auth/login:
@@ -831,6 +832,186 @@ paths:
               },
           }
       responses: { '200': { description: Routes } }
+
+  /encounters/{id}/clinical:
+    get:
+      {
+        tags: [EMR],
+        summary: Vitals,
+        notes (with addenda) and diagnoses for one visit (audited view),
+        x-permissions: [emr.read],
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        responses: { '200': { description: Visit clinical record }, '403': { $ref: '#/components/responses/Error' } },
+      }
+  /encounters/{id}/vitals:
+    post:
+      tags: [EMR]
+      summary: Record vitals; BMI calculated and abnormal values flagged (age-appropriate); critical flags raise vitals.critical
+      x-permissions: [emr.vitals.write]
+      parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                systolic: { type: number }
+                diastolic: { type: number }
+                pulse: { type: number }
+                temperatureC: { type: number }
+                respRate: { type: number }
+                spo2: { type: number }
+                weightKg: { type: number }
+                heightCm: { type: number }
+                muacCm: { type: number, description: children 6–59 months }
+                painScore: { type: integer, minimum: 0, maximum: 10 }
+                notes: { type: [string, 'null'] }
+                clientId: { type: string, format: uuid }
+      responses: { '201': { description: 'Vitals with a flags array' } }
+  /encounters/{id}/notes:
+    post:
+      tags: [EMR]
+      summary: Write a SOAP note — signed and locked on save unless sign is false (draft)
+      x-permissions: [emr.notes.write, 'emr.notes.sign (to sign)']
+      parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }]
+      responses: { '201': { description: Note } }
+  /encounters/{id}/diagnoses:
+    post:
+      tags: [EMR]
+      summary: Add an ICD-coded diagnosis; a new primary demotes the previous one
+      x-permissions: [emr.diagnoses.write]
+      parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [icdCode]
+              properties:
+                icdCode: { type: string }
+                icdSystem: { type: string, enum: [icd11, icd10], default: icd11 }
+                certainty: { type: string, enum: [provisional, confirmed] }
+                rank: { type: string, enum: [primary, secondary] }
+      responses: { '201': { description: Diagnosis }, '409': { $ref: '#/components/responses/Error' } }
+  /notes/{id}:
+    patch:
+      {
+        tags: [EMR],
+        summary: Edit a draft (author only); 409 NOTE_SIGNED for signed notes,
+        x-permissions: [emr.notes.write],
+        parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }],
+        responses: { '200': { description: Note } },
+      }
+  /notes/{id}/sign:
+    post:
+      {
+        tags: [EMR],
+        summary: Sign and lock a draft (author only),
+        x-permissions: [emr.notes.sign],
+        parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }],
+        responses: { '200': { description: Note } },
+      }
+  /notes/{id}/addenda:
+    post:
+      {
+        tags: [EMR],
+        summary: Append an addendum to a signed note,
+        x-permissions: [emr.notes.write],
+        parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }],
+        responses: { '201': { description: Note with addenda } },
+      }
+  /patients/{id}/timeline:
+    get:
+      tags: [EMR]
+      summary: Chronological record across visits, newest first (audited view)
+      x-permissions: [emr.read]
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+        - { name: before, in: query, schema: { type: string, format: date-time } }
+        - { name: limit, in: query, schema: { type: integer, maximum: 100, default: 40 } }
+      responses:
+        { '200': { description: '{ data: events[], nextBefore }' }, '403': { $ref: '#/components/responses/Error' } }
+  /patients/{id}/clinical-summary:
+    get:
+      {
+        tags: [EMR],
+        summary: Allergies,
+        problems,
+        last vitals,
+        recent diagnoses,
+        x-permissions: [emr.read],
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        responses: { '200': { description: Summary } },
+      }
+  /patients/{id}/allergies:
+    post:
+      {
+        tags: [EMR],
+        summary: Record an allergy (duplicates refused),
+        x-permissions: [emr.allergies.write],
+        parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }],
+        responses: { '201': { description: Allergy } },
+      }
+  /allergies/{id}:
+    patch:
+      {
+        tags: [EMR],
+        summary: Set active / inactive,
+        x-permissions: [emr.allergies.write],
+        parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }],
+        responses: { '200': { description: Allergy } },
+      }
+  /patients/{id}/problems:
+    post:
+      {
+        tags: [EMR],
+        x-permissions: [emr.allergies.write],
+        parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }],
+        responses: { '201': { description: Problem } },
+      }
+  /problems/{id}:
+    patch:
+      {
+        tags: [EMR],
+        summary: Resolve or reopen,
+        x-permissions: [emr.allergies.write],
+        parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }],
+        responses: { '200': { description: Problem } },
+      }
+  /clinical/{kind}/{id}/entered-in-error:
+    post:
+      tags: [EMR]
+      summary: Mark an entry entered in error (kept, struck through, with reason) — kind is vitals, notes, diagnoses, allergies or problems
+      x-permissions: [the write permission for that kind]
+      parameters:
+        - {
+            name: kind,
+            in: path,
+            required: true,
+            schema: { type: string, enum: [vitals, notes, diagnoses, allergies, problems] },
+          }
+        - { $ref: '#/components/parameters/Id' }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses: { '200': { description: Corrected } }
+  /icd:
+    get:
+      tags: [EMR]
+      summary: ICD-11 (or ICD-10) code search by code prefix or title, typo-tolerant
+      x-permissions: [emr.read, claims.read]
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 2 } }
+        - { name: system, in: query, schema: { type: string, enum: [icd11, icd10], default: icd11 } }
+      responses: { '200': { description: Codes with ICD-10 mapping } }
+  /note-templates:
+    get:
+      {
+        tags: [EMR],
+        summary: SOAP templates by department,
+        x-permissions: [emr.read],
+        responses: { '200': { description: Templates } },
+      }
 
 components:
   securitySchemes:

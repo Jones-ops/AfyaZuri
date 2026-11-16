@@ -79,6 +79,19 @@ describe('registration', () => {
     expect(audit.after.phone_enc).toBe('[redacted]');
   });
 
+  it('stores and finds names with non-ASCII letters (e.g. Kikuyu ũ, ĩ)', async () => {
+    const tag = cap(letters(6));
+    const p = await register(
+      person({ firstName: 'Wambũi', middleName: 'Njĩrũ', lastName: `Kamau${tag.toLowerCase()}` }),
+    );
+    expect(p.fullName).toBe(`Wambũi Njĩrũ Kamau${tag.toLowerCase()}`);
+    const found = (await clerk.get(`/api/v1/patients?q=${encodeURIComponent(`WAMBŨI kamau${tag.toLowerCase()}`)}`)).body
+      .data;
+    expect(found.map((x) => x.id)).toContain(p.id);
+    const row = await ctx.db('patients').where({ id: p.id }).first('search_name');
+    expect(row.search_name).toBe(`wambũi njĩrũ kamau${tag.toLowerCase()}`);
+  });
+
   it('accepts an estimated age', async () => {
     const p = await register(person({ dateOfBirth: undefined, estimatedAge: { years: 4, months: 3 } }));
     expect(p.dobEstimated).toBe(true);

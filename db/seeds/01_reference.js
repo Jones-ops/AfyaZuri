@@ -2,6 +2,7 @@
 // and Kenyan administrative units. Idempotent — safe to re-run after upgrades.
 import { existsSync, readFileSync } from 'node:fs';
 import { PERMISSION_GROUPS, ROLES } from '../../packages/shared/src/permissions.js';
+import { ICD11_STARTER } from './data/icd11-starter.js';
 
 export const COUNTIES = [
   ['001', 'Mombasa'],
@@ -149,6 +150,20 @@ export async function seed(knex) {
     }
     await seedAdminUnits(knex, units);
   }
+
+  // ICD-11 starter codes (never overwrites a fuller official import).
+  await knex('icd_codes')
+    .insert(
+      ICD11_STARTER.map(([code, title, chapter, icd10]) => ({
+        system: 'icd11',
+        code,
+        title,
+        chapter,
+        icd10_map: icd10,
+      })),
+    )
+    .onConflict(['system', 'code'])
+    .ignore();
 
   // Deployment-wide default settings.
   const defaults = {

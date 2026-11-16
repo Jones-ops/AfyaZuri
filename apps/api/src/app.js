@@ -15,6 +15,7 @@ import { auditRoutes } from './modules/audit/routes.js';
 import { authRoutes } from './modules/auth/routes.js';
 import { facilityRoutes } from './modules/facilities/routes.js';
 import { Metrics, healthRoutes } from './modules/health/routes.js';
+import { emrRoutes } from './modules/emr/routes.js';
 import { opdRoutes } from './modules/opd/routes.js';
 import { patientRoutes } from './modules/patients/routes.js';
 import { userRoutes } from './modules/users/routes.js';
@@ -112,6 +113,7 @@ export function createApp(deps) {
   api.use(auditRoutes(deps));
   api.use(patientRoutes(deps));
   api.use(opdRoutes(deps));
+  api.use(emrRoutes(deps));
   api.use((req) => {
     throw new AppError(404, 'NOT_FOUND', `No route for ${req.method} ${safeUrl(req.originalUrl)}`);
   });

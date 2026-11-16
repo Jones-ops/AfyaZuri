@@ -108,6 +108,14 @@ Migrations run automatically at start-up.
 
 If the facility already runs PostgreSQL 16 (or a cloud host provides a managed one), set `EXTERNAL_DATABASE_URL=postgres://user:pass@host:5432/afyazuri` in `.env`. `npm start` will then skip the embedded server. Backups and restores work the same way. On a managed service without superuser access, restore into a database where you are the owner; see [backup-restore.md](backup-restore.md).
 
+The database must use **UTF-8** so names such as _Wambũi Njĩrũ_ and clinical text are stored correctly. Afyazuri refuses to migrate a database with any other encoding. Create it with:
+
+```sql
+CREATE DATABASE afyazuri ENCODING 'UTF8' TEMPLATE template0;
+```
+
+The embedded server is always created as UTF-8, with ICU collation where the platform build supports it.
+
 ## Cloud hosting
 
 Run the same `npm start` on a Linux VM. Put [`deploy/nginx/afyazuri.conf`](../deploy/nginx/afyazuri.conf) in front with a Let's Encrypt certificate (`certbot --nginx`), and keep port 4000 closed to the internet.

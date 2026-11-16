@@ -25,6 +25,8 @@ const BreakGlassReview = lazy(() => import('./pages/BreakGlassReview.jsx'));
 const Queues = lazy(() => import('./pages/Queues.jsx'));
 const QueueBoard = lazy(() => import('./pages/QueueBoard.jsx'));
 const QueueDisplay = lazy(() => import('./pages/QueueDisplay.jsx'));
+const EncounterWorkspace = lazy(() => import('./pages/EncounterWorkspace.jsx'));
+const PatientChart = lazy(() => import('./pages/PatientChart.jsx'));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
@@ -146,6 +148,22 @@ function App() {
             element={
               <Protected perm="patients.read">
                 <PatientCard />
+              </Protected>
+            }
+          />
+          <Route
+            path="patients/:id/chart"
+            element={
+              <Protected perm="emr.read">
+                <PatientChart />
+              </Protected>
+            }
+          />
+          <Route
+            path="encounters/:id"
+            element={
+              <Protected perm="emr.read">
+                <EncounterWorkspace />
               </Protected>
             }
           />

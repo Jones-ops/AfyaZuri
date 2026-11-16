@@ -68,6 +68,7 @@ Nightly encrypted backups run automatically when `BACKUP_KEY` and `BACKUP_DIR` a
 | `npm run build`                                               | Build the PWA into `apps/web/dist`                                            |
 | `npm run secrets`                                             | Create/complete `.env` with random secrets (never overwrites existing values) |
 | `npm run admin:create -- --username u --name "Full Name"`     | Create the first Super Admin                                                  |
+| `npm run icd:import -- <SimpleTabulation file>`               | Load the official WHO ICD-11 code list (a small starter set ships by default) |
 | `npm run backup`                                              | Encrypted backup now, verify it, apply retention, copy off-site               |
 | `npm run backup -- verify <file>`                             | Check a backup decrypts and is intact                                         |
 | `npm run backup -- restore <file> --database-url <url> --yes` | Restore (destructive)                                                         |
@@ -127,15 +128,15 @@ e2e/            Playwright tests
 
 ## Delivery status
 
-| Phase | Scope                                                                        | Status                                                                                          |
-| ----- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| 1     | Foundation: auth, users, roles, facilities, audit log, UI shell, CI, backups | ✅ Done                                                                                         |
-| 2     | Patients and OPD: registration, duplicates, search, queues, triage, EMR      | In progress: patients ✅, OPD queues ✅ (check-in, payer routing, boards, TV display); EMR next |
-| 3     | Billing core, M-Pesa (mocked Daraja), receipts, cashier shifts               | Planned                                                                                         |
-| 4     | Pharmacy and inventory                                                       | Planned                                                                                         |
-| 5     | Lab and imaging                                                              | Planned                                                                                         |
-| 6     | Inpatient                                                                    | Planned                                                                                         |
-| 7     | Claims and SHA (mock SHA server)                                             | Planned                                                                                         |
-| 8     | Reports and dashboard                                                        | Planned                                                                                         |
-| 9     | Offline and low-bandwidth hardening                                          | Planned                                                                                         |
-| 10    | Data protection and ops hardening                                            | Planned                                                                                         |
+| Phase | Scope                                                                        | Status                                                                                                                                      |
+| ----- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | Foundation: auth, users, roles, facilities, audit log, UI shell, CI, backups | ✅ Done                                                                                                                                     |
+| 2     | Patients and OPD: registration, duplicates, search, queues, triage, EMR      | In progress: patients ✅, OPD queues ✅, EMR ✅ (vitals, signed notes, ICD-11 diagnoses, allergies, timeline); demo data and hardening next |
+| 3     | Billing core, M-Pesa (mocked Daraja), receipts, cashier shifts               | Planned                                                                                                                                     |
+| 4     | Pharmacy and inventory                                                       | Planned                                                                                                                                     |
+| 5     | Lab and imaging                                                              | Planned                                                                                                                                     |
+| 6     | Inpatient                                                                    | Planned                                                                                                                                     |
+| 7     | Claims and SHA (mock SHA server)                                             | Planned                                                                                                                                     |
+| 8     | Reports and dashboard                                                        | Planned                                                                                                                                     |
+| 9     | Offline and low-bandwidth hardening                                          | Planned                                                                                                                                     |
+| 10    | Data protection and ops hardening                                            | Planned                                                                                                                                     |

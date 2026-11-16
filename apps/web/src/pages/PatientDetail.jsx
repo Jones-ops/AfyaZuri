@@ -19,7 +19,12 @@ const CONSENT_LABEL = {
 };
 
 export function usePatient(id) {
-  return useQuery({ queryKey: ['patient', id], queryFn: () => api.get(`/patients/${id}`), retry: false });
+  return useQuery({
+    queryKey: ['patient', id],
+    queryFn: () => api.get(`/patients/${id}`),
+    retry: false,
+    enabled: !!id,
+  });
 }
 
 export default function PatientDetail() {
@@ -57,6 +62,11 @@ export default function PatientDetail() {
         title="Patient record"
         actions={
           <>
+            <Can perm="emr.read">
+              <Link to={`/patients/${p.id}/chart`} className="btn-primary">
+                Clinical chart
+              </Link>
+            </Can>
             <Link to={`/patients/${p.id}/card`} className="btn-secondary">
               Patient card
             </Link>

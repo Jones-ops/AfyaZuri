@@ -1,31 +1,15 @@
-// Starts a local PostgreSQL 16 server (via embedded-postgres) for development and tests
-// on machines without Docker. Data lives in .pgdata/ (git-ignored).
-import EmbeddedPostgres from 'embedded-postgres';
-import { existsSync } from 'node:fs';
+// Starts a local PostgreSQL 16 server (via embedded-postgres) for development on machines
+// without Docker. Data lives in .pgdata/ (git-ignored). `npm run dev` does this for you.
 import { resolve } from 'node:path';
+import { ensureDatabase, startCluster } from './lib/pg.js';
 
 const dataDir = resolve(process.env.PGDATA_DIR ?? '.pgdata');
 const port = Number(process.env.PGPORT ?? 54329);
 
-const pg = new EmbeddedPostgres({
-  databaseDir: dataDir,
-  user: 'postgres',
-  password: 'postgres',
-  port,
-  persistent: true,
-  onLog: () => {},
-});
-
-if (!existsSync(resolve(dataDir, 'PG_VERSION'))) await pg.initialise();
-await pg.start();
-for (const db of ['afyazuri', 'afyazuri_test']) {
-  try {
-    await pg.createDatabase(db);
-  } catch {
-    /* already exists */
-  }
-}
+const pg = await startCluster({ dataDir, port, password: 'postgres', log: console.log });
+for (const db of ['afyazuri', 'afyazuri_test']) await ensureDatabase(pg, db);
 console.log(`PostgreSQL running on localhost:${port} (user postgres / postgres). Ctrl+C to stop.`);
+
 const stop = async () => {
   await pg.stop();
   process.exit(0);

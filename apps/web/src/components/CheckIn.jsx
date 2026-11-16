@@ -61,13 +61,20 @@ export default function CheckIn({ patient: p }) {
               {current.billingMode === 'pay_first' ? 'pay before service' : 'bill at exit'}
             </p>
           </div>
-          {current.currentTicket && (
-            <Can perm="opd.queue.read">
-              <Link className="btn-secondary" to={`/opd/queues/${current.currentTicket.queueId}`}>
-                Open {current.currentTicket.queueName} queue
+          <span className="flex flex-wrap gap-2">
+            <Can perm="emr.read">
+              <Link className="btn-primary" to={`/encounters/${current.id}`}>
+                Open visit
               </Link>
             </Can>
-          )}
+            {current.currentTicket && (
+              <Can perm="opd.queue.read">
+                <Link className="btn-secondary" to={`/opd/queues/${current.currentTicket.queueId}`}>
+                  Open {current.currentTicket.queueName} queue
+                </Link>
+              </Can>
+            )}
+          </span>
         </div>
       ) : (
         <Can perm="opd.checkin" fallback={<p className="text-sm text-slate-600">No open visit.</p>}>

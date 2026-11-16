@@ -14,7 +14,7 @@ Thumbs.db
 playwright-report/
 test-results/
 deploy/backup/data/
-backups/
-data/
-certs/
+/backups/
+/data/
+/certs/
 *.partial

@@ -9,3 +9,5 @@ export * from './schemas/audit.js';
 export * from './schemas/patients.js';
 export * from './age.js';
 export * from './schemas/opd.js';
+export * from './vitals.js';
+export * from './schemas/emr.js';

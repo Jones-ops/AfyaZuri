@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../api.js';
+import { Can } from '../auth.jsx';
 import { Alert, Badge, EmptyState, ErrorMessage, PageHeader, Spinner } from '../components/ui.jsx';
 
 const PRIORITY = { 2: ['Emergency', 'red'], 1: ['Urgent', 'amber'] };
@@ -141,6 +142,11 @@ function Ticket({ t, canManage, destinations, act, complete }) {
       <p className="text-xs text-slate-600">
         {t.patient.age} · {t.patient.sex} · <span className="font-mono">{t.patient.mrn}</span>
       </p>
+      <Can perm="emr.read">
+        <Link to={`/encounters/${t.encounterId}`} className="text-xs text-brand-800 hover:underline">
+          Open visit
+        </Link>
+      </Can>
       {canManage && (
         <div className="mt-2 flex flex-wrap gap-1">
           {t.status === 'waiting' && (
