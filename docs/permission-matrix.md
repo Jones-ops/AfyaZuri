@@ -10,8 +10,8 @@ Clinical permissions (`emr.*`, `orders.*`) are held only by clinical roles.
 
 | Code | Role | Clinical | 2FA expected | Permissions | Purpose |
 | --- | --- | :---: | :---: | ---: | --- |
-| `super_admin` | Super Admin |  | ✔ | 73 | System administrator for the whole deployment. No clinical access by default. |
-| `facility_admin` | Facility Admin |  | ✔ | 28 | Administers one facility: staff, setup, catalogues and price lists. |
+| `super_admin` | Super Admin |  | ✔ | 74 | System administrator for the whole deployment. No clinical access by default. |
+| `facility_admin` | Facility Admin |  | ✔ | 29 | Administers one facility: staff, setup, catalogues and price lists. |
 | `records_clerk` | Records Clerk |  |  | 8 | Registers patients and checks them in. |
 | `triage_nurse` | Triage Nurse | ✔ |  | 10 | Records vitals and routes patients from triage. |
 | `doctor` | Clinician / Doctor | ✔ |  | 28 | Consults, diagnoses, orders and prescribes. |
@@ -58,6 +58,7 @@ Column keys: **1** Super Admin · **2** Facility Admin · **3** Records Clerk ·
 | `patients.create` — Register patients | ● |  | ● |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `patients.update` — Edit patient demographics | ● |  | ● |  | ● | ● |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `patients.merge` — Merge and unmerge duplicate patients | ● | ● |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `patients.restrict` — Mark a record restricted (VIP or sensitive); clinical access then needs break-the-glass | ● | ● |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `patients.export` — Export a full patient record (data subject access request) | ● | ● |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `patients.consent.manage` — Record patient consent | ● |  | ● |  | ● | ● |  |  |  |  |  |  |  |  |  |  |  |  |  |
 

@@ -14,7 +14,7 @@ import {
   wardUpdateBody,
 } from '@afyazuri/shared';
 import { requestMeta, validate } from '../../lib/http.js';
-import { authenticate, requirePermission } from '../../middleware/auth.js';
+import { requirePermission } from '../../middleware/auth.js';
 import * as svc from './service.js';
 
 const settingParams = z.object({ key: z.string().regex(/^[a-z][a-z0-9_.]{2,80}$/) });
@@ -23,7 +23,6 @@ const settingBody = z.object({ value: z.unknown() }).refine((b) => b.value !== u
 /** @param {import('../../app.js').Deps} deps */
 export function facilityRoutes(deps) {
   const r = Router();
-  r.use(authenticate(deps));
   const read = requirePermission('facilities.read');
   const manage = requirePermission('facilities.manage');
   const m = requestMeta;

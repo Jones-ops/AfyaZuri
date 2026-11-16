@@ -1,18 +1,5 @@
 import { expect, test } from '@playwright/test';
-
-const PASSWORD = 'Afyazuri#2026';
-
-/**
- * Sign in and, unless told otherwise, wait until the app has left the login page.
- * @param {import('@playwright/test').Page} page
- */
-async function signIn(page, username, password = PASSWORD, { expectSuccess = true } = {}) {
-  await page.goto('/login');
-  await page.getByLabel('Username').fill(username);
-  await page.getByLabel('Password').fill(password);
-  await page.getByRole('button', { name: 'Sign in' }).click();
-  if (expectSuccess) await page.waitForURL((url) => !url.pathname.startsWith('/login'), { timeout: 30_000 });
-}
+import { signIn } from './helpers.js';
 
 test('facility admin creates a staff account, and the action is audited', async ({ page }) => {
   await signIn(page, 'facadmin');

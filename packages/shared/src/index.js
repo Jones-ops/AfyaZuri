@@ -6,3 +6,5 @@ export * from './schemas/auth.js';
 export * from './schemas/users.js';
 export * from './schemas/facilities.js';
 export * from './schemas/audit.js';
+export * from './schemas/patients.js';
+export * from './age.js';

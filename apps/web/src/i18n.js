@@ -18,6 +18,8 @@ const resources = {
       offline: 'Offline',
       nav: {
         home: 'Home',
+        patients: 'Patients',
+        breakGlass: 'Emergency access',
         users: 'Staff',
         roles: 'Roles & permissions',
         facility: 'Facility setup',
@@ -40,6 +42,8 @@ const resources = {
       offline: 'Nje ya mtandao',
       nav: {
         home: 'Nyumbani',
+        patients: 'Wagonjwa',
+        breakGlass: 'Ufikiaji wa dharura',
         users: 'Wafanyakazi',
         roles: 'Majukumu na ruhusa',
         facility: 'Mpangilio wa kituo',

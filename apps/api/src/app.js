@@ -6,15 +6,20 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
+import pg from 'pg';
 import pinoHttp from 'pino-http';
 import { AppError, errorHandler } from './lib/errors.js';
 import { safeUrl } from './lib/logger.js';
-import { csrfGuard } from './middleware/auth.js';
+import { authenticate, csrfGuard } from './middleware/auth.js';
 import { auditRoutes } from './modules/audit/routes.js';
 import { authRoutes } from './modules/auth/routes.js';
 import { facilityRoutes } from './modules/facilities/routes.js';
 import { Metrics, healthRoutes } from './modules/health/routes.js';
+import { patientRoutes } from './modules/patients/routes.js';
 import { userRoutes } from './modules/users/routes.js';
+
+// Calendar dates (e.g. date of birth) stay 'YYYY-MM-DD' strings; never time-zone-shifted Date objects.
+pg.types.setTypeParser(pg.types.builtins.DATE, (v) => v);
 
 /**
  * @typedef {Object} Deps
@@ -99,9 +104,12 @@ export function createApp(deps) {
     next();
   });
   api.use('/auth', authRoutes(deps));
+  // Everything after this point requires a signed-in user (authenticated once per request).
+  api.use(authenticate(deps));
   api.use(userRoutes(deps));
   api.use(facilityRoutes(deps));
   api.use(auditRoutes(deps));
+  api.use(patientRoutes(deps));
   api.use((req) => {
     throw new AppError(404, 'NOT_FOUND', `No route for ${req.method} ${safeUrl(req.originalUrl)}`);
   });

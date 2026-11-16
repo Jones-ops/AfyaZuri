@@ -73,6 +73,7 @@ export const api = {
   post: (path, body = {}, headers) => request('POST', path, body, { headers }),
   put: (path, body = {}) => request('PUT', path, body),
   patch: (path, body = {}) => request('PATCH', path, body),
+  delete: (path) => request('DELETE', path),
 };
 
 /** Build a query string, skipping empty values. @param {Record<string, any>} params */

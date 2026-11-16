@@ -1,13 +1,15 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { setLanguage } from '../i18n.js';
 
 const NAV = [
   { to: '/', key: 'home', perm: null, end: true },
+  { to: '/patients', key: 'patients', perm: 'patients.read' },
+  { to: '/admin/break-glass', key: 'breakGlass', perm: 'audit.read' },
   { to: '/admin/users', key: 'users', perm: 'users.read' },
   { to: '/admin/roles', key: 'roles', perm: 'roles.read' },
   { to: '/admin/facility', key: 'facility', perm: 'facilities.read' },
@@ -64,7 +66,31 @@ export default function Layout() {
   const online = useOnline();
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   useEffect(() => setMenuOpen(false), [location.pathname]);
+
+  // "/" anywhere (outside a text field) jumps to patient search.
+  const canSearch = can('patients.read');
+  useEffect(() => {
+    if (!canSearch) return undefined;
+    const onKey = (e) => {
+      const tag = e.target?.tagName;
+      if (
+        e.key !== '/' ||
+        e.ctrlKey ||
+        e.metaKey ||
+        e.altKey ||
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag) ||
+        e.target?.isContentEditable
+      )
+        return;
+      e.preventDefault();
+      if (location.pathname === '/patients') document.getElementById('patient-search')?.focus();
+      else navigate('/patients');
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [canSearch, location.pathname, navigate]);
 
   const items = NAV.filter((n) => !n.perm || can(n.perm));
 

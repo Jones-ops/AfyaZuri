@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { auditQuery, hasGlobalPermission } from '@afyazuri/shared';
 import { decodeCursor, page, requestMeta, validate } from '../../lib/http.js';
-import { actorOf, authenticate, requirePermission } from '../../middleware/auth.js';
+import { actorOf, requirePermission } from '../../middleware/auth.js';
 import { recordAudit } from './service.js';
 
 /**
@@ -55,7 +55,6 @@ const csvCell = (v) => {
 export function auditRoutes(deps) {
   const { db } = deps;
   const r = Router();
-  r.use(authenticate(deps));
 
   r.get('/audit', requirePermission('audit.read'), validate({ query: auditQuery }), async (req, res) => {
     const f = req.valid.query;

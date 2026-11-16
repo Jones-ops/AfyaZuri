@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
   title: Afyazuri API
-  version: 0.1.0
+  version: 0.2.0
   description: |
-    Phase 1 endpoints of the Afyazuri hospital management system. Conventions (cookies, CSRF header,
+    Endpoints of the Afyazuri hospital management system (Phase 1 foundation and Phase 2 patients). Conventions (cookies, CSRF header,
     errors, pagination, idempotency) are described in docs/api.md.
 servers:
   - url: /api/v1
@@ -15,6 +15,7 @@ tags:
   - name: Users
   - name: Facilities
   - name: Audit
+  - name: Patients
 
 paths:
   /auth/login:
@@ -467,6 +468,210 @@ paths:
       parameters: *auditFilters
       responses: { '200': { description: CSV, content: { text/csv: {} } } }
 
+  /patients:
+    get:
+      tags: [Patients]
+      summary: Search by name, MRN, phone, national ID or SHA number (exact matches first)
+      x-permissions: [patients.read]
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 2, maxLength: 80 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: Matches with masked phone numbers; `hint` explains queries that are too short
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/PatientSummary' } }
+                  nextCursor: { type: [string, 'null'] }
+                  hint: { type: [string, 'null'] }
+    post:
+      tags: [Patients]
+      summary: Register a patient (409 POSSIBLE_DUPLICATE unless duplicateOverrideReason is given)
+      x-permissions: [patients.create]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/RegisterPatient' } } }
+      responses:
+        '201':
+          {
+            description: Registered,
+            content: { application/json: { schema: { $ref: '#/components/schemas/Patient' } } },
+          }
+        '400': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /patients/duplicates:
+    post:
+      tags: [Patients]
+      summary: Likely existing records for a person, scored with reasons
+      x-permissions: [patients.create]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses: { '200': { description: Candidates } }
+  /patients/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [Patients]
+      summary: Full record (audited view). Allergies only with clinical access; 410 PATIENT_MERGED with details.survivorId
+      x-permissions: [patients.read]
+      responses:
+        '200':
+          { description: Patient, content: { application/json: { schema: { $ref: '#/components/schemas/Patient' } } } }
+        '410': { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [Patients]
+      summary: Edit demographics; `identifiers` replaces the full set
+      x-permissions: [patients.update]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses: { '200': { description: Updated patient } }
+  /patients/{id}/restrict:
+    post:
+      tags: [Patients]
+      summary: Mark or unmark a record as restricted (reason required)
+      x-permissions: [patients.restrict]
+      parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }]
+      responses: { '200': { description: Updated patient } }
+  /patients/{id}/consents:
+    post:
+      tags: [Patients]
+      summary: Record consent given or withdrawn (current consent version is stamped)
+      x-permissions: [patients.consent.manage]
+      parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }]
+      responses: { '200': { description: Updated patient } }
+  /patients/{id}/payer-schemes:
+    post:
+      tags: [Patients]
+      x-permissions: [patients.update]
+      parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }]
+      responses: { '200': { description: Updated patient } }
+  /patients/{id}/payer-schemes/{linkId}:
+    delete:
+      tags: [Patients]
+      summary: Deactivate a payer scheme link
+      x-permissions: [patients.update]
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+        - { name: linkId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses: { '200': { description: Updated patient } }
+  /patients/merge:
+    post:
+      tags: [Patients]
+      summary: Merge a duplicate into the survivor; all linked records move, reversibly
+      x-permissions: [patients.merge]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [survivorId, mergedId, reason]
+              properties:
+                {
+                  survivorId: { type: string, format: uuid },
+                  mergedId: { type: string, format: uuid },
+                  reason: { type: string, minLength: 10 },
+                }
+      responses: { '200': { description: '{ mergeId, patient }' } }
+  /patient-merges/{id}/unmerge:
+    post:
+      tags: [Patients]
+      x-permissions: [patients.merge]
+      parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }]
+      responses: { '200': { description: '{ survivorId, restoredId }' } }
+  /patients/{id}/merges:
+    get:
+      {
+        tags: [Patients],
+        x-permissions: [patients.merge],
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        responses: { '200': { description: Merge history } },
+      }
+  /patients/{id}/break-glass:
+    post:
+      tags: [Patients]
+      summary: Time-limited emergency access to a restricted record (reason required; audited and reviewed)
+      x-permissions: [emr.break_glass]
+      parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                {
+                  schema: { type: object, required: [reason], properties: { reason: { type: string, minLength: 10 } } },
+                },
+            },
+        }
+      responses: { '201': { description: '{ grantId, expiresAt }' }, '400': { $ref: '#/components/responses/Error' } }
+  /break-glass:
+    get:
+      tags: [Patients]
+      summary: Emergency-access grants for review
+      x-permissions: [audit.read]
+      parameters: [{ name: status, in: query, schema: { type: string, enum: [unreviewed, all], default: unreviewed } }]
+      responses: { '200': { description: Grants } }
+  /break-glass/{id}/review:
+    post:
+      tags: [Patients]
+      x-permissions: [audit.read]
+      parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                {
+                  schema:
+                    {
+                      type: object,
+                      required: [outcome],
+                      properties:
+                        { outcome: { type: string, enum: [justified, unjustified] }, note: { type: [string, 'null'] } },
+                    },
+                },
+            },
+        }
+      responses: { '200': { description: Reviewed }, '403': { $ref: '#/components/responses/Error' } }
+  /schemes:
+    get:
+      {
+        tags: [Patients],
+        summary: Active payer schemes,
+        x-permissions: [patients.read],
+        responses: { '200': { description: Schemes } },
+      }
+  /admin-units/counties:
+    get:
+      {
+        tags: [Patients],
+        summary: The 47 counties,
+        x-permissions: [patients.read],
+        responses: { '200': { description: Counties } },
+      }
+  /admin-units/counties/{code}/sub-counties:
+    get:
+      {
+        tags: [Patients],
+        x-permissions: [patients.read],
+        parameters: [{ name: code, in: path, required: true, schema: { type: string, pattern: '^\d{3}$' } }],
+        responses: { '200': { description: Sub-counties } },
+      }
+  /admin-units/sub-counties/{id}/wards:
+    get:
+      {
+        tags: [Patients],
+        x-permissions: [patients.read],
+        parameters: [{ name: id, in: path, required: true, schema: { type: integer } }],
+        responses: { '200': { description: Wards } },
+      }
+
 components:
   securitySchemes:
     cookieAuth: { type: apiKey, in: cookie, name: az_at }
@@ -553,6 +758,83 @@ components:
               facilityName: { type: [string, 'null'] }
               departmentId: { type: [string, 'null'] }
               departmentName: { type: [string, 'null'] }
+    PatientSummary:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        mrn: { type: string, example: '99001-2026-000042' }
+        fullName: { type: string }
+        sex: { type: string, enum: [male, female, intersex, unknown] }
+        dateOfBirth: { type: string, format: date }
+        dobEstimated: { type: boolean }
+        age: { type: string, example: '36 y', description: 'days under 1 month, months under 2 years, then years' }
+        phoneMasked: { type: [string, 'null'], example: '07•• ••• 678' }
+        isRestricted: { type: boolean }
+        matchedBy: { type: string, enum: [mrn, phone, identifier, name] }
+    Patient:
+      allOf:
+        - $ref: '#/components/schemas/PatientSummary'
+        - type: object
+          properties:
+            phone: { type: [string, 'null'] }
+            identifiers:
+              {
+                type: array,
+                items:
+                  {
+                    type: object,
+                    properties: { type: { type: string }, value: { type: string }, masked: { type: string } },
+                  },
+              }
+            payerSchemes: { type: array, items: { type: object } }
+            consents: { type: array, items: { type: object } }
+            clinical:
+              type: object
+              properties:
+                canView: { type: boolean }
+                reason: { type: string, enum: [ok, no_permission, restricted] }
+                breakGlassUntil: { type: [string, 'null'], format: date-time }
+            allergies: { type: [array, 'null'], description: null when the caller has no clinical access }
+    RegisterPatient:
+      type: object
+      required: [firstName, lastName, sex]
+      description: Give dateOfBirth or estimatedAge.
+      properties:
+        firstName: { type: string }
+        middleName: { type: [string, 'null'] }
+        lastName: { type: string }
+        sex: { type: string, enum: [male, female, intersex, unknown] }
+        dateOfBirth: { type: string, format: date }
+        estimatedAge: { type: object, properties: { years: { type: integer }, months: { type: integer } } }
+        phone: { type: [string, 'null'] }
+        identifiers:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                {
+                  type: string,
+                  enum: [national_id, birth_certificate, passport, alien_id, sha_number, nhif_legacy, other],
+                }
+              value: { type: string }
+        payerScheme:
+          {
+            type: [object, 'null'],
+            properties: { schemeId: { type: string, format: uuid }, memberNumber: { type: string } },
+          }
+        consents:
+          {
+            type: array,
+            items:
+              {
+                type: object,
+                properties: { consentType: { type: string }, granted: { type: boolean }, method: { type: string } },
+              },
+          }
+        nextOfKin: { type: [object, 'null'] }
+        duplicateOverrideReason: { type: string, minLength: 10 }
+        clientId: { type: string, format: uuid, description: Client-generated id; repeats return the same patient }
     Me:
       type: object
       properties:

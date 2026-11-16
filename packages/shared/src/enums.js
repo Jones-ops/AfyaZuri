@@ -79,3 +79,18 @@ export const AUDIT_ACTIONS = [
 export const PAYER_TYPES = ['cash', 'sha', 'private_insurer', 'corporate', 'waiver'];
 
 export const CONSENT_TYPES = ['data_processing', 'share_with_payer', 'share_for_referral', 'sms'];
+export const CONSENT_METHODS = ['verbal', 'signed', 'digital', 'guardian'];
+
+export const MARITAL_STATUS = ['single', 'married', 'divorced', 'separated', 'widowed', 'cohabiting', 'unknown'];
+
+export const KIN_RELATIONSHIPS = [
+  'spouse',
+  'parent',
+  'child',
+  'sibling',
+  'guardian',
+  'relative',
+  'friend',
+  'employer',
+  'other',
+];

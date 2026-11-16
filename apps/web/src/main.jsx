@@ -17,6 +17,11 @@ const Roles = lazy(() => import('./pages/Roles.jsx'));
 const Facility = lazy(() => import('./pages/Facility.jsx'));
 const Audit = lazy(() => import('./pages/Audit.jsx'));
 const Account = lazy(() => import('./pages/Account.jsx'));
+const Patients = lazy(() => import('./pages/Patients.jsx'));
+const PatientRegister = lazy(() => import('./pages/PatientRegister.jsx'));
+const PatientDetail = lazy(() => import('./pages/PatientDetail.jsx'));
+const PatientCard = lazy(() => import('./pages/PatientCard.jsx'));
+const BreakGlassReview = lazy(() => import('./pages/BreakGlassReview.jsx'));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
@@ -81,6 +86,46 @@ function App() {
             element={
               <Protected perm="audit.read">
                 <Audit />
+              </Protected>
+            }
+          />
+          <Route
+            path="patients"
+            element={
+              <Protected perm="patients.read">
+                <Patients />
+              </Protected>
+            }
+          />
+          <Route
+            path="patients/new"
+            element={
+              <Protected perm="patients.create">
+                <PatientRegister />
+              </Protected>
+            }
+          />
+          <Route
+            path="patients/:id"
+            element={
+              <Protected perm="patients.read">
+                <PatientDetail />
+              </Protected>
+            }
+          />
+          <Route
+            path="patients/:id/card"
+            element={
+              <Protected perm="patients.read">
+                <PatientCard />
+              </Protected>
+            }
+          />
+          <Route
+            path="admin/break-glass"
+            element={
+              <Protected perm="audit.read">
+                <BreakGlassReview />
               </Protected>
             }
           />

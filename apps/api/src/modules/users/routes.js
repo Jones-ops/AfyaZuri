@@ -10,7 +10,7 @@ import {
   updateUserBody,
 } from '@afyazuri/shared';
 import { requestMeta, validate } from '../../lib/http.js';
-import { authenticate, requirePermission } from '../../middleware/auth.js';
+import { requirePermission } from '../../middleware/auth.js';
 import { idempotent } from '../../middleware/idempotency.js';
 import * as svc from './service.js';
 
@@ -19,7 +19,6 @@ const statusBody = z.object({ reason: z.string().trim().min(3).max(300) });
 /** @param {import('../../app.js').Deps} deps */
 export function userRoutes(deps) {
   const r = Router();
-  r.use(authenticate(deps));
   const id = validate({ params: idParams });
 
   r.get('/roles', requirePermission('roles.read'), async (_req, res) =>
