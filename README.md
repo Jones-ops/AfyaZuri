@@ -127,15 +127,15 @@ e2e/            Playwright tests
 
 ## Delivery status
 
-| Phase | Scope                                                                        | Status                                                                                                         |
-| ----- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| 1     | Foundation: auth, users, roles, facilities, audit log, UI shell, CI, backups | ✅ Done                                                                                                        |
-| 2     | Patients and OPD: registration, duplicates, search, queues, triage, EMR      | In progress: patients ✅ (registration, duplicates, search, merge, consent, break-the-glass); OPD and EMR next |
-| 3     | Billing core, M-Pesa (mocked Daraja), receipts, cashier shifts               | Planned                                                                                                        |
-| 4     | Pharmacy and inventory                                                       | Planned                                                                                                        |
-| 5     | Lab and imaging                                                              | Planned                                                                                                        |
-| 6     | Inpatient                                                                    | Planned                                                                                                        |
-| 7     | Claims and SHA (mock SHA server)                                             | Planned                                                                                                        |
-| 8     | Reports and dashboard                                                        | Planned                                                                                                        |
-| 9     | Offline and low-bandwidth hardening                                          | Planned                                                                                                        |
-| 10    | Data protection and ops hardening                                            | Planned                                                                                                        |
+| Phase | Scope                                                                        | Status                                                                                          |
+| ----- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| 1     | Foundation: auth, users, roles, facilities, audit log, UI shell, CI, backups | ✅ Done                                                                                         |
+| 2     | Patients and OPD: registration, duplicates, search, queues, triage, EMR      | In progress: patients ✅, OPD queues ✅ (check-in, payer routing, boards, TV display); EMR next |
+| 3     | Billing core, M-Pesa (mocked Daraja), receipts, cashier shifts               | Planned                                                                                         |
+| 4     | Pharmacy and inventory                                                       | Planned                                                                                         |
+| 5     | Lab and imaging                                                              | Planned                                                                                         |
+| 6     | Inpatient                                                                    | Planned                                                                                         |
+| 7     | Claims and SHA (mock SHA server)                                             | Planned                                                                                         |
+| 8     | Reports and dashboard                                                        | Planned                                                                                         |
+| 9     | Offline and low-bandwidth hardening                                          | Planned                                                                                         |
+| 10    | Data protection and ops hardening                                            | Planned                                                                                         |

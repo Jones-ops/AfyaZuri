@@ -154,8 +154,16 @@ describe('phase 2 schema guarantees', () => {
         .insert({ facility_id: main.id, encounter_id: e.id, patient_id: p.id, recorded_by: doctor.id, spo2: 140 }),
     ).rejects.toThrow(/check constraint/);
     const hc = await ctx.db('facilities').where({ kmhfl_code: '99002' }).first('id');
+    // Close the first visit so only the cross-facility rule is being tested.
+    await ctx.db('encounters').where({ id: e.id }).update({ status: 'closed' });
     await expect(ctx.db('encounters').insert({ facility_id: hc.id, patient_id: p.id, type: 'opd' })).rejects.toThrow(
       /foreign key/,
+    );
+    await expect(
+      ctx.db('encounters').insert({ facility_id: main.id, patient_id: p.id, type: 'opd' }),
+    ).resolves.toBeTruthy();
+    await expect(ctx.db('encounters').insert({ facility_id: main.id, patient_id: p.id, type: 'opd' })).rejects.toThrow(
+      /encounters_one_open_opd/,
     );
   });
 });

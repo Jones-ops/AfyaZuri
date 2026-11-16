@@ -9,6 +9,7 @@ import { setLanguage } from '../i18n.js';
 const NAV = [
   { to: '/', key: 'home', perm: null, end: true },
   { to: '/patients', key: 'patients', perm: 'patients.read' },
+  { to: '/opd', key: 'queues', perm: 'opd.queue.read' },
   { to: '/admin/break-glass', key: 'breakGlass', perm: 'audit.read' },
   { to: '/admin/users', key: 'users', perm: 'users.read' },
   { to: '/admin/roles', key: 'roles', perm: 'roles.read' },

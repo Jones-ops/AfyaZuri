@@ -17,13 +17,13 @@ Clinical permissions (`emr.*`, `orders.*`) are held only by clinical roles.
 | `doctor` | Clinician / Doctor | ✔ |  | 28 | Consults, diagnoses, orders and prescribes. |
 | `clinical_officer` | Clinical Officer | ✔ |  | 28 | Consults, diagnoses, orders and prescribes. |
 | `ward_nurse` | Nurse (Ward) | ✔ |  | 17 | Inpatient nursing care, vitals and medication administration. |
-| `pharmacist` | Pharmacist | ✔ |  | 12 | Dispenses, manages pharmacy rules and pharmacy stock. |
-| `pharmacy_tech` | Pharmacy Tech |  |  | 7 | Dispenses under pharmacist supervision and sells OTC. |
-| `lab_technologist` | Lab Technologist | ✔ |  | 8 | Collects and receives samples and enters results. |
-| `lab_supervisor` | Lab Supervisor | ✔ |  | 14 | Verifies and releases results; manages the catalogue. |
-| `radiographer` | Radiographer | ✔ |  | 4 | Schedules and performs imaging. |
+| `pharmacist` | Pharmacist | ✔ |  | 14 | Dispenses, manages pharmacy rules and pharmacy stock. |
+| `pharmacy_tech` | Pharmacy Tech |  |  | 9 | Dispenses under pharmacist supervision and sells OTC. |
+| `lab_technologist` | Lab Technologist | ✔ |  | 10 | Collects and receives samples and enters results. |
+| `lab_supervisor` | Lab Supervisor | ✔ |  | 16 | Verifies and releases results; manages the catalogue. |
+| `radiographer` | Radiographer | ✔ |  | 6 | Schedules and performs imaging. |
 | `radiologist` | Radiologist | ✔ |  | 8 | Reports and releases imaging. |
-| `cashier` | Cashier |  |  | 6 | Receives payments and runs a cashier shift. |
+| `cashier` | Cashier |  |  | 8 | Receives payments and runs a cashier shift. |
 | `billing_officer` | Billing Officer |  | ✔ | 13 | Manages bills, invoices, manual charges and approvals. |
 | `claims_officer` | Claims Officer |  | ✔ | 12 | Eligibility, preauthorization, claims and remittances. |
 | `storekeeper` | Storekeeper |  |  | 11 | Runs the main store: GRNs, issues, purchase orders and stock takes. |
@@ -80,8 +80,8 @@ Column keys: **1** Super Admin · **2** Facility Admin · **3** Records Clerk ·
 | Permission | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 |
 | --- | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
 | `opd.checkin` — Check patients in and create encounters | ● |  | ● |  | ● | ● |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| `opd.queue.read` — View queues | ● |  | ● | ● | ● | ● |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| `opd.queue.manage` — Call, serve and route queue tickets | ● |  | ● | ● | ● | ● |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `opd.queue.read` — View queues | ● |  | ● | ● | ● | ● |  | ● | ● | ● | ● | ● |  | ● |  |  |  |  |  |
+| `opd.queue.manage` — Call, serve and route queue tickets | ● |  | ● | ● | ● | ● |  | ● | ● | ● | ● | ● |  | ● |  |  |  |  |  |
 | `opd.referrals.write` — Create internal and external referrals | ● |  |  |  | ● | ● |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 ### orders

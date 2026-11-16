@@ -270,6 +270,8 @@ export const ROLES = {
     description: 'Dispenses, manages pharmacy rules and pharmacy stock.',
     clinical: true,
     permissions: pick([
+      'opd.queue.read',
+      'opd.queue.manage',
       'dashboard.read',
       'patients.read',
       'emr.read',
@@ -286,6 +288,8 @@ export const ROLES = {
     description: 'Dispenses under pharmacist supervision and sells OTC.',
     clinical: false,
     permissions: pick([
+      'opd.queue.read',
+      'opd.queue.manage',
       'patients.read',
       'pharmacy.read',
       'pharmacy.dispense',
@@ -300,6 +304,8 @@ export const ROLES = {
     description: 'Collects and receives samples and enters results.',
     clinical: true,
     permissions: pick([
+      'opd.queue.read',
+      'opd.queue.manage',
       'patients.read',
       'lab.read',
       'lab.samples.collect',
@@ -315,6 +321,8 @@ export const ROLES = {
     description: 'Verifies and releases results; manages the catalogue.',
     clinical: true,
     permissions: pick([
+      'opd.queue.read',
+      'opd.queue.manage',
       'dashboard.read',
       'patients.read',
       'emr.read',
@@ -330,7 +338,14 @@ export const ROLES = {
     name: 'Radiographer',
     description: 'Schedules and performs imaging.',
     clinical: true,
-    permissions: pick(['patients.read', 'imaging.read', 'imaging.schedule', 'imaging.perform']),
+    permissions: pick([
+      'opd.queue.read',
+      'opd.queue.manage',
+      'patients.read',
+      'imaging.read',
+      'imaging.schedule',
+      'imaging.perform',
+    ]),
   },
   radiologist: {
     name: 'Radiologist',
@@ -343,6 +358,8 @@ export const ROLES = {
     description: 'Receives payments and runs a cashier shift.',
     clinical: false,
     permissions: pick([
+      'opd.queue.read',
+      'opd.queue.manage',
       'patients.read',
       'billing.read',
       'billing.payment.receive',

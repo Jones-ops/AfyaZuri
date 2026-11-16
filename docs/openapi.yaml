@@ -16,6 +16,7 @@ tags:
   - name: Facilities
   - name: Audit
   - name: Patients
+  - name: OPD
 
 paths:
   /auth/login:
@@ -671,6 +672,165 @@ paths:
         parameters: [{ name: id, in: path, required: true, schema: { type: integer } }],
         responses: { '200': { description: Wards } },
       }
+
+  /encounters:
+    get:
+      tags: [OPD]
+      summary: Visits (default open), each with its current queue ticket
+      x-permissions: [opd.queue.read, patients.read]
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [open, closed, all], default: open } }
+        - { name: patientId, in: query, schema: { type: string, format: uuid } }
+        - { name: limit, in: query, schema: { type: integer, maximum: 100, default: 50 } }
+      responses: { '200': { description: Visits } }
+    post:
+      tags: [OPD]
+      summary: Check in — opens an OPD/emergency visit and queues the patient at the first step of their payer's route
+      description: 409 ALREADY_CHECKED_IN (details.encounterId) when the patient already has an open visit. Idempotent on clientId.
+      x-permissions: [opd.checkin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [patientId]
+              properties:
+                patientId: { type: string, format: uuid }
+                type: { type: string, enum: [opd, emergency], default: opd }
+                patientPayerSchemeId: { type: [string, 'null'], format: uuid, description: omitted = cash }
+                priority:
+                  {
+                    type: integer,
+                    minimum: 0,
+                    maximum: 2,
+                    description: 0 routine,
+                    1 urgent,
+                    2 emergency (forced for emergency visits),
+                  }
+                clientId: { type: string, format: uuid }
+      responses: { '201': { description: Visit with currentTicket }, '409': { $ref: '#/components/responses/Error' } }
+  /encounters/{id}:
+    get:
+      {
+        tags: [OPD],
+        x-permissions: [opd.queue.read, patients.read],
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        responses: { '200': { description: Visit with all tickets } },
+      }
+  /encounters/{id}/close:
+    post:
+      {
+        tags: [OPD],
+        summary: End a visit (closes any open ticket),
+        x-permissions: [opd.checkin, opd.queue.manage],
+        parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }],
+        responses: { '200': { description: Closed visit } },
+      }
+  /queues:
+    get:
+      {
+        tags: [OPD],
+        summary: Queues with waiting/serving counts,
+        longest wait and whether you can manage each,
+        x-permissions: [opd.queue.read],
+        responses: { '200': { description: Queues } },
+      }
+  /queues/{id}/board:
+    get:
+      {
+        tags: [OPD],
+        summary: Waiting,
+        called and in-service tickets with patient details and the suggested next step,
+        x-permissions: [opd.queue.read],
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        responses: { '200': { description: Board } },
+      }
+  /queues/{id}/display:
+    get:
+      {
+        tags: [OPD],
+        summary: Public-screen view — ticket numbers only,
+        no names,
+        x-permissions: [opd.queue.read],
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        responses: { '200': { description: Display } },
+      }
+  /queues/{id}/call-next:
+    post:
+      {
+        tags: [OPD],
+        summary: Call the next ticket (emergency,
+        then urgent,
+        then longest waiting); department-scoped,
+        x-permissions: [opd.queue.manage],
+        parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }],
+        responses: { '200': { description: Called ticket }, '409': { $ref: '#/components/responses/Error' } },
+      }
+  /queue-tickets/{id}/{action}:
+    post:
+      tags: [OPD]
+      summary: Ticket action; 409 INVALID_TRANSITION for impossible moves
+      x-permissions: [opd.queue.manage]
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+        - { name: action, in: path, required: true, schema: { type: string, enum: [call, start, no-show, requeue] } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses: { '200': { description: Updated ticket } }
+  /queue-tickets/{id}/complete:
+    post:
+      tags: [OPD]
+      summary: Finish service and move on — next route step, a detour that returns here, or exit
+      x-permissions: [opd.queue.manage]
+      parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [next]
+              properties:
+                next:
+                  oneOf:
+                    - { type: object, properties: { kind: { const: route } } }
+                    - {
+                        type: object,
+                        properties: { kind: { const: service_point }, servicePointId: { type: string, format: uuid } },
+                      }
+                    - { type: object, properties: { kind: { const: exit } } }
+                note: { type: [string, 'null'] }
+      responses: { '200': { description: '{ ticket, nextTicket, encounterClosed }' } }
+  /opd-routes:
+    get:
+      {
+        tags: [OPD],
+        summary: Routes per payer type,
+        x-permissions: [facilities.read, opd.queue.read],
+        responses: { '200': { description: Routes } },
+      }
+    put:
+      tags: [OPD]
+      summary: Replace the route for a payer type (null = default); must start at registration and end at exit
+      x-permissions: [facilities.manage]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          {
+            application/json:
+              {
+                schema:
+                  {
+                    type: object,
+                    required: [payerType, steps],
+                    properties:
+                      { payerType: { type: [string, 'null'] }, steps: { type: array, items: { type: string } } },
+                  },
+              },
+          }
+      responses: { '200': { description: Routes } }
 
 components:
   securitySchemes:

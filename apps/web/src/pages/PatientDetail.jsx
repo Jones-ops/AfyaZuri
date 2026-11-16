@@ -5,6 +5,7 @@ import { Link, Navigate, useLocation, useParams } from 'react-router-dom';
 import { CONSENT_TYPES } from '@afyazuri/shared';
 import { api } from '../api.js';
 import { Can } from '../auth.jsx';
+import CheckIn from '../components/CheckIn.jsx';
 import PatientBanner from '../components/PatientBanner.jsx';
 import PatientFields, { ID_FIELDS, fromPatient, issueMap, toPatientBody } from '../components/PatientForm.jsx';
 import { Alert, Badge, ErrorMessage, Field, PageHeader, Spinner, formatDateTime } from '../components/ui.jsx';
@@ -36,6 +37,7 @@ export default function PatientDetail() {
   return (
     <>
       <PatientBanner patient={p} />
+      <CheckIn patient={p} />
       {location.state?.registered && (
         <div className="mb-3">
           <Alert kind="success">

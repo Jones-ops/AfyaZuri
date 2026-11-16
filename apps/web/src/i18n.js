@@ -19,6 +19,7 @@ const resources = {
       nav: {
         home: 'Home',
         patients: 'Patients',
+        queues: 'Queues',
         breakGlass: 'Emergency access',
         users: 'Staff',
         roles: 'Roles & permissions',
@@ -43,6 +44,7 @@ const resources = {
       nav: {
         home: 'Nyumbani',
         patients: 'Wagonjwa',
+        queues: 'Foleni',
         breakGlass: 'Ufikiaji wa dharura',
         users: 'Wafanyakazi',
         roles: 'Majukumu na ruhusa',

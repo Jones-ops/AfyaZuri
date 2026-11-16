@@ -716,6 +716,14 @@ export async function mergePatients(deps, auth, input, meta) {
     const merged = await loadPatient(trx, auth, input.mergedId, { forUpdate: true });
     if (survivor.merged_into_id || merged.merged_into_id)
       throw conflict('One of these records has already been merged');
+    const openVisits = await trx('encounters')
+      .whereIn('patient_id', [survivor.id, merged.id])
+      .where({ status: 'open' })
+      .whereIn('type', ['opd', 'emergency'])
+      .countDistinct({ n: 'patient_id' })
+      .first();
+    if (Number(openVisits.n) > 1)
+      throw conflict('Both records have an open visit. Close one of the visits before merging.');
 
     await trx.raw(`SET LOCAL afyazuri.merging = 'on'`);
     const repointed = {};

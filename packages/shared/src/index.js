@@ -8,3 +8,4 @@ export * from './schemas/facilities.js';
 export * from './schemas/audit.js';
 export * from './schemas/patients.js';
 export * from './age.js';
+export * from './schemas/opd.js';

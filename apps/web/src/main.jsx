@@ -22,6 +22,9 @@ const PatientRegister = lazy(() => import('./pages/PatientRegister.jsx'));
 const PatientDetail = lazy(() => import('./pages/PatientDetail.jsx'));
 const PatientCard = lazy(() => import('./pages/PatientCard.jsx'));
 const BreakGlassReview = lazy(() => import('./pages/BreakGlassReview.jsx'));
+const Queues = lazy(() => import('./pages/Queues.jsx'));
+const QueueBoard = lazy(() => import('./pages/QueueBoard.jsx'));
+const QueueDisplay = lazy(() => import('./pages/QueueDisplay.jsx'));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
@@ -41,6 +44,15 @@ function App() {
     <Suspense fallback={<Spinner />}>
       <Routes>
         <Route path="/login" element={<Login />} />
+        {/* Full-screen waiting-room display, outside the app shell. */}
+        <Route
+          path="/opd/display/:id"
+          element={
+            <Protected perm="opd.queue.read">
+              <QueueDisplay />
+            </Protected>
+          }
+        />
         <Route
           element={
             <Protected>
@@ -49,6 +61,22 @@ function App() {
           }
         >
           <Route index element={<Home />} />
+          <Route
+            path="opd"
+            element={
+              <Protected perm="opd.queue.read">
+                <Queues />
+              </Protected>
+            }
+          />
+          <Route
+            path="opd/queues/:id"
+            element={
+              <Protected perm="opd.queue.read">
+                <QueueBoard />
+              </Protected>
+            }
+          />
           <Route
             path="admin/users"
             element={

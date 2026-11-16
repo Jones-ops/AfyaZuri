@@ -4,12 +4,14 @@ import { useForm } from 'react-hook-form';
 import { BED_STATUS, DEPARTMENT_TYPES, SERVICE_POINT_TYPES } from '@afyazuri/shared';
 import { api } from '../api.js';
 import { Can, useAuth } from '../auth.jsx';
+import OpdRoutes from '../components/OpdRoutes.jsx';
 import { Badge, EmptyState, ErrorMessage, Field, PageHeader, Spinner } from '../components/ui.jsx';
 
 const TABS = [
   ['departments', 'Departments'],
   ['servicePoints', 'Service points'],
   ['wards', 'Wards & beds'],
+  ['routes', 'OPD routes'],
 ];
 
 export default function Facility() {
@@ -61,6 +63,7 @@ export default function Facility() {
       {tab === 'departments' && <Departments />}
       {tab === 'servicePoints' && <ServicePoints />}
       {tab === 'wards' && <Wards />}
+      {tab === 'routes' && <OpdRoutes />}
     </>
   );
 }
