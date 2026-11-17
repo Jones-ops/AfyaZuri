@@ -3,7 +3,33 @@ import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api.js';
 import { Can } from '../auth.jsx';
+import { formatKES, toCents } from '@afyazuri/shared';
 import { Badge, ErrorMessage, Field } from './ui.jsx';
+
+/** The visit's bill balance with a link to the bill. */
+function VisitBill({ encounterId }) {
+  const bill = useQuery({
+    queryKey: ['visit-bill', encounterId],
+    queryFn: () => api.get(`/encounters/${encounterId}/bill`),
+    retry: false,
+  });
+  if (!bill.data) return null;
+  const b = bill.data;
+  return (
+    <p className="mt-1 text-sm">
+      <Link to={`/billing/bills/${b.id}`} className="font-mono text-brand-800 hover:underline">
+        {b.billNumber}
+      </Link>{' '}
+      ·{' '}
+      {toCents(b.balance) > 0 ? (
+        <strong className="text-amber-900">patient owes {formatKES(b.balance)}</strong>
+      ) : (
+        <span className="text-emerald-800">nothing owed by the patient</span>
+      )}
+      {toCents(b.payerAmount) > 0 && <span className="text-slate-600"> · payer {formatKES(b.payerAmount)}</span>}
+    </p>
+  );
+}
 
 /**
  * Current visit for a patient, or a check-in form when there is none.
@@ -60,6 +86,9 @@ export default function CheckIn({ patient: p }) {
               · {current.schemeName ?? 'Cash'} ·{' '}
               {current.billingMode === 'pay_first' ? 'pay before service' : 'bill at exit'}
             </p>
+            <Can perm="billing.read">
+              <VisitBill encounterId={current.id} />
+            </Can>
           </div>
           <span className="flex flex-wrap gap-2">
             <Can perm="emr.read">

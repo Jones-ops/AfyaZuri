@@ -6,6 +6,7 @@ import { ageLabel, hasPermission, todayNairobi } from '@afyazuri/shared';
 import { AppError, badRequest, conflict, forbidden, notFound } from '../../lib/errors.js';
 import { getSetting } from '../../lib/settings.js';
 import { recordAudit } from '../audit/service.js';
+import { onEncounterClosed, onEncounterOpened } from '../billing/service.js';
 
 /**
  * @typedef {import('../../middleware/auth.js').AuthContext} AuthContext
@@ -225,6 +226,7 @@ export async function checkIn({ db, bus }, auth, input, meta) {
         updated_by: auth.userId,
       })
       .returning('*');
+    await onEncounterOpened(trx, auth, enc); // consultation (and first-visit registration) fees, same transaction
     const ticket = await enqueue(trx, auth, { encounter: enc, queue, routeStep: firstStep, priority });
     await recordAudit(trx, actorOf(auth), meta, {
       action: 'create',
@@ -337,6 +339,7 @@ async function closeWithin(trx, auth, enc, reason, meta) {
     .where({ id: enc.id })
     .update({ status: 'closed', ended_at: trx.fn.now(), updated_by: auth.userId })
     .returning('*');
+  await onEncounterClosed(trx, enc.id);
   await recordAudit(trx, actorOf(auth), meta, {
     action: 'update',
     entityType: 'encounter',
@@ -397,10 +400,15 @@ export async function queueBoard({ db }, auth, queueId) {
   const rows = await db('queue_tickets as t')
     .join('patients as p', 'p.id', 't.patient_id')
     .join('encounters as e', 'e.id', 't.encounter_id')
+    .leftJoin('bills as b', function bill() {
+      this.on('b.encounter_id', 'e.id').andOnVal('b.status', '<>', 'cancelled');
+    })
     .where('t.queue_id', queueId)
     .whereIn('t.status', ACTIVE_STATUSES)
     .orderBy([{ column: 't.priority', order: 'desc' }, { column: 't.enqueued_at' }])
     .select(
+      'b.balance as bill_balance',
+      'b.id as bill_id',
       't.*',
       'p.mrn',
       'p.first_name',
@@ -425,6 +433,10 @@ export async function queueBoard({ db }, auth, queueId) {
       encounterType: t.encounter_type,
       billingMode: t.billing_mode,
       payerType: t.route_payer_type,
+      billId: t.bill_id,
+      balance: t.bill_balance ?? '0.00',
+      /** Pay-before-service patient who still owes money (shown as a warning; the cashier collects). */
+      unpaid: t.billing_mode === 'pay_first' && Number(t.bill_balance ?? 0) > 0,
       returnsToReferrer: !!t.referred_from_ticket_id,
       nextStep: t.referred_from_ticket_id ? 'return' : (route[(t.route_step ?? 0) + 1] ?? 'exit'),
       patient: {

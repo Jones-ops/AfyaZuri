@@ -27,6 +27,9 @@ const QueueBoard = lazy(() => import('./pages/QueueBoard.jsx'));
 const QueueDisplay = lazy(() => import('./pages/QueueDisplay.jsx'));
 const EncounterWorkspace = lazy(() => import('./pages/EncounterWorkspace.jsx'));
 const PatientChart = lazy(() => import('./pages/PatientChart.jsx'));
+const Bills = lazy(() => import('./pages/Bills.jsx'));
+const BillDetail = lazy(() => import('./pages/BillDetail.jsx'));
+const BillingSetup = lazy(() => import('./pages/BillingSetup.jsx'));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
@@ -164,6 +167,30 @@ function App() {
             element={
               <Protected perm="emr.read">
                 <EncounterWorkspace />
+              </Protected>
+            }
+          />
+          <Route
+            path="billing"
+            element={
+              <Protected perm="billing.read">
+                <Bills />
+              </Protected>
+            }
+          />
+          <Route
+            path="billing/bills/:id"
+            element={
+              <Protected perm="billing.read">
+                <BillDetail />
+              </Protected>
+            }
+          />
+          <Route
+            path="billing/setup"
+            element={
+              <Protected perm="billing.pricelist.manage">
+                <BillingSetup />
               </Protected>
             }
           />

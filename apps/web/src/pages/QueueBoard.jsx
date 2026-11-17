@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { formatKES } from '@afyazuri/shared';
 import { api } from '../api.js';
 import { Can } from '../auth.jsx';
 import { Alert, Badge, EmptyState, ErrorMessage, PageHeader, Spinner } from '../components/ui.jsx';
@@ -133,6 +134,7 @@ function Ticket({ t, canManage, destinations, act, complete }) {
         <span className="flex flex-wrap gap-1">
           {PRIORITY[t.priority] && <Badge tone={PRIORITY[t.priority][1]}>{PRIORITY[t.priority][0]}</Badge>}
           {t.payerType && t.payerType !== 'cash' && <Badge tone="blue">{t.payerType.toUpperCase()}</Badge>}
+          {t.unpaid && <Badge tone="red">Unpaid {formatKES(t.balance)}</Badge>}
           <Badge>{t.waitMinutes} min</Badge>
         </span>
       </div>

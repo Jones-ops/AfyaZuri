@@ -18,6 +18,7 @@ tags:
   - name: Patients
   - name: OPD
   - name: EMR
+  - name: Billing
 
 paths:
   /auth/login:
@@ -1013,6 +1014,146 @@ paths:
         responses: { '200': { description: Templates } },
       }
 
+  /charge-items:
+    get:
+      tags: [Billing]
+      summary: Service catalogue with each item's current cash price
+      x-permissions: [billing.read, billing.pricelist.manage]
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: active, in: query, schema: { type: string, enum: ['true', 'false'] } }
+      responses: { '200': { description: Items } }
+    post:
+      {
+        tags: [Billing],
+        x-permissions: [billing.pricelist.manage],
+        parameters: [{ $ref: '#/components/parameters/Csrf' }],
+        responses: { '201': { description: Item } },
+      }
+  /charge-items/{id}:
+    patch:
+      {
+        tags: [Billing],
+        x-permissions: [billing.pricelist.manage],
+        parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }],
+        responses: { '200': { description: Item } },
+      }
+  /price-lists:
+    get:
+      {
+        tags: [Billing],
+        summary: Cash list (default) and one list per scheme,
+        x-permissions: [billing.read, billing.pricelist.manage],
+        responses: { '200': { description: Lists } },
+      }
+    post:
+      {
+        tags: [Billing],
+        summary: 'Create a list; schemeId null = cash; one default cash list per facility (409 otherwise)',
+        x-permissions: [billing.pricelist.manage],
+        parameters: [{ $ref: '#/components/parameters/Csrf' }],
+        responses: { '201': { description: List } },
+      }
+  /price-lists/{id}:
+    patch:
+      {
+        tags: [Billing],
+        x-permissions: [billing.pricelist.manage],
+        parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }],
+        responses: { '200': { description: List } },
+      }
+  /price-lists/{id}/items:
+    get:
+      {
+        tags: [Billing],
+        x-permissions: [billing.read, billing.pricelist.manage],
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        responses: { '200': { description: Prices } },
+      }
+    put:
+      tags: [Billing]
+      summary: Set an item's price and payer cover on a list (cash lists have no cover)
+      x-permissions: [billing.pricelist.manage]
+      parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [chargeItemId, unitPrice]
+              properties:
+                chargeItemId: { type: string, format: uuid }
+                unitPrice: { $ref: '#/components/schemas/Amount' }
+                coverType:
+                  {
+                    type: string,
+                    enum: [none, full, fixed, percent],
+                    description: 'fixed = payer pays coverValue KES per unit (capped); percent = payer pays coverValue %',
+                  }
+                coverValue: { $ref: '#/components/schemas/Amount' }
+                requiresPreauth: { type: boolean }
+      responses: { '200': { description: Price } }
+  /price-lists/{id}/items/{itemId}:
+    delete:
+      tags: [Billing]
+      x-permissions: [billing.pricelist.manage]
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+        - { name: itemId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses: { '200': { description: Removed } }
+  /bills:
+    get:
+      tags: [Billing]
+      summary: Bills, newest first (default = patient owes money)
+      x-permissions: [billing.read]
+      parameters:
+        - {
+            name: status,
+            in: query,
+            schema: { type: string, enum: [outstanding, open, final, closed, cancelled, all], default: outstanding },
+          }
+        - { name: q, in: query, description: Bill number, MRN or name, schema: { type: string } }
+        - { name: patientId, in: query, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses: { '200': { description: Bills } }
+  /bills/{id}:
+    get:
+      {
+        tags: [Billing],
+        summary: 'Bill with lines, payments, waivers and refunds; amounts are decimal strings',
+        x-permissions: [billing.read],
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        responses: { '200': { description: Bill } },
+      }
+  /encounters/{id}/bill:
+    get:
+      {
+        tags: [Billing],
+        summary: The visit's bill (one per visit),
+        x-permissions: [billing.read],
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        responses: { '200': { description: Bill } },
+      }
+  /bills/{id}/items:
+    post:
+      tags: [Billing]
+      summary: Manual charge; unitPrice only for items with no price on the applicable list
+      x-permissions: [billing.charge.manual]
+      parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }]
+      responses: { '201': { description: Bill } }
+  /bill-items/{id}/void:
+    post:
+      {
+        tags: [Billing],
+        summary: Void a line with a reason (kept on the bill),
+        x-permissions: [billing.charge.manual],
+        parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }],
+        responses: { '200': { description: Bill } },
+      }
+
 components:
   securitySchemes:
     cookieAuth: { type: apiKey, in: cookie, name: az_at }
@@ -1042,6 +1183,13 @@ components:
       description: Error
       content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
   schemas:
+    Amount:
+      {
+        type: string,
+        pattern: '^-?\d+\.\d{2}$',
+        example: '1500.00',
+        description: 'KES as a decimal string (input also accepts numbers and "1,500")',
+      }
     Ok: { type: object, properties: { ok: { type: boolean } } }
     Error:
       type: object

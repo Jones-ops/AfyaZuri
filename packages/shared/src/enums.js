@@ -94,3 +94,18 @@ export const KIN_RELATIONSHIPS = [
   'employer',
   'other',
 ];
+
+export const CHARGE_CATEGORIES = [
+  'registration',
+  'consultation',
+  'procedure',
+  'laboratory',
+  'imaging',
+  'pharmacy',
+  'bed',
+  'nursing',
+  'theatre',
+  'other',
+];
+export const PAYMENT_METHODS = ['cash', 'mpesa', 'card', 'bank'];
+export const COVER_TYPES = ['none', 'full', 'fixed', 'percent'];
