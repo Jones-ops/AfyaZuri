@@ -24,7 +24,7 @@ Clinical permissions (`emr.*`, `orders.*`) are held only by clinical roles.
 | `radiographer` | Radiographer | ✔ |  | 6 | Schedules and performs imaging. |
 | `radiologist` | Radiologist | ✔ |  | 8 | Reports and releases imaging. |
 | `cashier` | Cashier |  |  | 8 | Receives payments and runs a cashier shift. |
-| `billing_officer` | Billing Officer |  | ✔ | 13 | Manages bills, invoices, manual charges and approvals. |
+| `billing_officer` | Billing Officer |  | ✔ | 14 | Manages bills, invoices, manual charges and approvals. |
 | `claims_officer` | Claims Officer |  | ✔ | 12 | Eligibility, preauthorization, claims and remittances. |
 | `storekeeper` | Storekeeper |  |  | 11 | Runs the main store: GRNs, issues, purchase orders and stock takes. |
 | `accountant` | Accountant |  | ✔ | 11 | Finance oversight: approvals, reconciliation and financial reports. |
@@ -146,7 +146,7 @@ Column keys: **1** Super Admin · **2** Facility Admin · **3** Records Clerk ·
 | `billing.refund.approve` — Approve refunds and credit notes | ● |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  | ● |  |
 | `billing.waiver.request` — Request waivers | ● |  |  |  |  |  |  |  |  |  |  |  |  | ● | ● |  |  |  |  |
 | `billing.waiver.approve` — Approve waivers | ● |  |  |  |  |  |  |  |  |  |  |  |  |  | ● |  |  | ● |  |
-| `billing.shift.manage` — Open and close cashier shifts | ● |  |  |  |  |  |  |  |  |  |  |  |  | ● |  |  |  |  |  |
+| `billing.shift.manage` — Open and close cashier shifts | ● |  |  |  |  |  |  |  |  |  |  |  |  | ● | ● |  |  |  |  |
 | `billing.pricelist.manage` — Manage price lists | ● | ● |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 ### claims

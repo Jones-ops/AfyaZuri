@@ -13,6 +13,7 @@
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { startMocks } from './lib/mocks.js';
 import { ROOT, loadEnv, migrateAndSeed, startPostgres } from './lib/pg.js';
 
 loadEnv();
@@ -43,7 +44,15 @@ if (!url) {
 }
 await migrateAndSeed(url, { demo: process.env.SEED_DEMO === 'true', log });
 
-const env = { ...process.env, DATABASE_URL: url, WEB_DIST: web };
+// Demo installs use the mock M-Pesa server; real ones set MPESA_ENV=sandbox|production.
+const mocks = (process.env.MPESA_ENV ?? 'mock') === 'mock' ? await startMocks({ log }) : null;
+if (mocks) log('M-Pesa is in MOCK mode: no real money moves. Set MPESA_ENV for live payments.');
+const env = {
+  ...process.env,
+  DATABASE_URL: url,
+  WEB_DIST: web,
+  ...(mocks ? { MPESA_BASE_URL: process.env.MPESA_BASE_URL ?? mocks.url } : {}),
+};
 let child;
 let stopping = false;
 let restarts = 0;

@@ -149,6 +149,13 @@ function Ticket({ t, canManage, destinations, act, complete }) {
           Open visit
         </Link>
       </Can>
+      {t.billId && t.unpaid && (
+        <Can perm="billing.payment.receive">
+          <Link to={`/billing/bills/${t.billId}`} className="ml-3 text-xs font-semibold text-brand-800 hover:underline">
+            Take payment
+          </Link>
+        </Can>
+      )}
       {canManage && (
         <div className="mt-2 flex flex-wrap gap-1">
           {t.status === 'waiting' && (

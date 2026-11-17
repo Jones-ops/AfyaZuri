@@ -10,6 +10,7 @@ const NAV = [
   { to: '/', key: 'home', perm: null, end: true },
   { to: '/patients', key: 'patients', perm: 'patients.read' },
   { to: '/opd', key: 'queues', perm: 'opd.queue.read' },
+  { to: '/cashier', key: 'cashier', perm: 'billing.shift.manage' },
   { to: '/billing', key: 'billing', perm: 'billing.read', end: true },
   { to: '/billing/setup', key: 'billingSetup', perm: 'billing.pricelist.manage' },
   { to: '/admin/break-glass', key: 'breakGlass', perm: 'audit.read' },

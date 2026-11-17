@@ -4,6 +4,7 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { startMocks } from './lib/mocks.js';
 import { ROOT, loadEnv, migrateAndSeed, startPostgres } from './lib/pg.js';
 
 if (!existsSync(join(ROOT, '.env')))
@@ -20,6 +21,9 @@ const pg = await startPostgres({
 });
 process.env.DATABASE_URL ??= pg.url;
 await migrateAndSeed(process.env.DATABASE_URL, { demo: true });
+
+const mocks = (process.env.MPESA_ENV ?? 'mock') === 'mock' ? await startMocks() : null;
+if (mocks) process.env.MPESA_BASE_URL ??= mocks.url;
 
 const children = [
   spawn(process.execPath, ['--watch', 'src/server.js'], {

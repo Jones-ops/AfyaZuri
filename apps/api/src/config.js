@@ -54,6 +54,25 @@ const schema = z.object({
   BACKUP_KEEP_DAILY: z.coerce.number().int().min(1).default(7),
   BACKUP_KEEP_WEEKLY: z.coerce.number().int().min(0).default(4),
   BACKUP_KEEP_MONTHLY: z.coerce.number().int().min(0).default(12),
+  // M-Pesa (Daraja). MPESA_ENV=mock talks to the bundled mock server (npm run mocks).
+  MPESA_ENV: z.enum(['mock', 'sandbox', 'production']).default('mock'),
+  MPESA_BASE_URL: z.string().url().optional(),
+  MPESA_CONSUMER_KEY: z.string().default('mock-key'),
+  MPESA_CONSUMER_SECRET: z.string().default('mock-secret'),
+  MPESA_SHORTCODE: z
+    .string()
+    .regex(/^\d{5,7}$/)
+    .default('174379'),
+  MPESA_PASSKEY: z.string().default('mock-passkey'),
+  /** Public base URL Safaricom calls back on, e.g. https://afyazuri.hospital.co.ke */
+  MPESA_CALLBACK_BASE_URL: z.string().url().default('http://localhost:4000'),
+  /** Secret path segment that authenticates callbacks (Daraja cannot send our auth headers). */
+  MPESA_CALLBACK_TOKEN: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.string().min(16).default('dev-callback-token-change-me'),
+  ),
+  /** Optional comma-separated IPs allowed to call the M-Pesa callbacks (Safaricom publishes its ranges). */
+  MPESA_CALLBACK_ALLOWED_IPS: z.string().default(''),
 });
 
 /**
@@ -73,6 +92,14 @@ export function loadConfig(env = process.env) {
     throw new Error(`Invalid configuration:\n${lines.join('\n')}`);
   }
   const c = parsed.data;
+  if (
+    c.NODE_ENV === 'production' &&
+    c.MPESA_ENV !== 'mock' &&
+    c.MPESA_CALLBACK_TOKEN === 'dev-callback-token-change-me'
+  )
+    throw new Error(
+      'Invalid configuration:\n  MPESA_CALLBACK_TOKEN must be set to a secret value (run `npm run secrets`)',
+    );
   if (!!c.TLS_CERT_FILE !== !!c.TLS_KEY_FILE)
     throw new Error('Invalid configuration:\n  Set both TLS_CERT_FILE and TLS_KEY_FILE, or neither');
   return {

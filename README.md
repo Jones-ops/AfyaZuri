@@ -61,24 +61,25 @@ Nightly encrypted backups run automatically when `BACKUP_KEY` and `BACKUP_DIR` a
 
 ## Scripts
 
-| Command                                                       | What it does                                                                  |
-| ------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `npm run dev`                                                 | Full local stack with demo data and auto-reload                               |
-| `npm start`                                                   | Production runtime (embedded PostgreSQL + API + built web app)                |
-| `npm run build`                                               | Build the PWA into `apps/web/dist`                                            |
-| `npm run secrets`                                             | Create/complete `.env` with random secrets (never overwrites existing values) |
-| `npm run admin:create -- --username u --name "Full Name"`     | Create the first Super Admin                                                  |
-| `npm run icd:import -- <SimpleTabulation file>`               | Load the official WHO ICD-11 code list (a small starter set ships by default) |
-| `npm run bench:search`                                        | Time patient search against 500 000 synthetic patients (docs/performance.md)  |
-| `npm run backup`                                              | Encrypted backup now, verify it, apply retention, copy off-site               |
-| `npm run backup -- verify <file>`                             | Check a backup decrypts and is intact                                         |
-| `npm run backup -- restore <file> --database-url <url> --yes` | Restore (destructive)                                                         |
-| `npm run db:local`                                            | Just the development PostgreSQL server                                        |
-| `npm run db:migrate` / `db:rollback` / `db:seed`              | Knex migrations and seeds against `DATABASE_URL`                              |
-| `npm test`                                                    | Unit + integration tests (integration uses a throwaway embedded PostgreSQL)   |
-| `npm run test:e2e`                                            | Build, then Playwright end-to-end tests (desktop, phone, 256 kbps / 300 ms)   |
-| `npm run lint` / `npm run format`                             | ESLint / Prettier                                                             |
-| `npm run docs:permissions`                                    | Regenerate [docs/permission-matrix.md](docs/permission-matrix.md)             |
+| Command                                                       | What it does                                                                      |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `npm run dev`                                                 | Full local stack with demo data and auto-reload                                   |
+| `npm start`                                                   | Production runtime (embedded PostgreSQL + API + built web app)                    |
+| `npm run build`                                               | Build the PWA into `apps/web/dist`                                                |
+| `npm run secrets`                                             | Create/complete `.env` with random secrets (never overwrites existing values)     |
+| `npm run admin:create -- --username u --name "Full Name"`     | Create the first Super Admin                                                      |
+| `npm run icd:import -- <SimpleTabulation file>`               | Load the official WHO ICD-11 code list (a small starter set ships by default)     |
+| `npm run mocks`                                               | Mock M-Pesa (Daraja) server on port 4300 (started automatically by `npm run dev`) |
+| `npm run bench:search`                                        | Time patient search against 500 000 synthetic patients (docs/performance.md)      |
+| `npm run backup`                                              | Encrypted backup now, verify it, apply retention, copy off-site                   |
+| `npm run backup -- verify <file>`                             | Check a backup decrypts and is intact                                             |
+| `npm run backup -- restore <file> --database-url <url> --yes` | Restore (destructive)                                                             |
+| `npm run db:local`                                            | Just the development PostgreSQL server                                            |
+| `npm run db:migrate` / `db:rollback` / `db:seed`              | Knex migrations and seeds against `DATABASE_URL`                                  |
+| `npm test`                                                    | Unit + integration tests (integration uses a throwaway embedded PostgreSQL)       |
+| `npm run test:e2e`                                            | Build, then Playwright end-to-end tests (desktop, phone, 256 kbps / 300 ms)       |
+| `npm run lint` / `npm run format`                             | ESLint / Prettier                                                                 |
+| `npm run docs:permissions`                                    | Regenerate [docs/permission-matrix.md](docs/permission-matrix.md)                 |
 
 ## Configuration
 
@@ -130,15 +131,15 @@ e2e/            Playwright tests
 
 ## Delivery status
 
-| Phase | Scope                                                                        | Status                                                                                                       |
-| ----- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| 1     | Foundation: auth, users, roles, facilities, audit log, UI shell, CI, backups | ✅ Done                                                                                                      |
-| 2     | Patients and OPD: registration, duplicates, search, queues, triage, EMR      | ✅ Done                                                                                                      |
-| 3     | Billing core, M-Pesa (mocked Daraja), receipts, cashier shifts               | In progress: charges and bills ✅ (catalogue, price lists with payer cover, auto-posted fees); payments next |
-| 4     | Pharmacy and inventory                                                       | Planned                                                                                                      |
-| 5     | Lab and imaging                                                              | Planned                                                                                                      |
-| 6     | Inpatient                                                                    | Planned                                                                                                      |
-| 7     | Claims and SHA (mock SHA server)                                             | Planned                                                                                                      |
-| 8     | Reports and dashboard                                                        | Planned                                                                                                      |
-| 9     | Offline and low-bandwidth hardening                                          | Planned                                                                                                      |
-| 10    | Data protection and ops hardening                                            | Planned                                                                                                      |
+| Phase | Scope                                                                        | Status                                                                                                                                                   |
+| ----- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | Foundation: auth, users, roles, facilities, audit log, UI shell, CI, backups | ✅ Done                                                                                                                                                  |
+| 2     | Patients and OPD: registration, duplicates, search, queues, triage, EMR      | ✅ Done                                                                                                                                                  |
+| 3     | Billing core, M-Pesa (mocked Daraja), receipts, cashier shifts               | In progress: charges and bills ✅, payments ✅ (shifts, cash/card/bank, receipts, M-Pesa STK + Paybill with mock Daraja); waivers, refunds, reports next |
+| 4     | Pharmacy and inventory                                                       | Planned                                                                                                                                                  |
+| 5     | Lab and imaging                                                              | Planned                                                                                                                                                  |
+| 6     | Inpatient                                                                    | Planned                                                                                                                                                  |
+| 7     | Claims and SHA (mock SHA server)                                             | Planned                                                                                                                                                  |
+| 8     | Reports and dashboard                                                        | Planned                                                                                                                                                  |
+| 9     | Offline and low-bandwidth hardening                                          | Planned                                                                                                                                                  |
+| 10    | Data protection and ops hardening                                            | Planned                                                                                                                                                  |

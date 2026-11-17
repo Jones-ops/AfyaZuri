@@ -12,6 +12,7 @@ const GENERATORS = {
   BLIND_INDEX_KEY: () => randomBytes(32).toString('base64'),
   BACKUP_KEY: () => randomBytes(32).toString('base64'),
   PG_PASSWORD: () => randomBytes(18).toString('base64url'),
+  MPESA_CALLBACK_TOKEN: () => randomBytes(24).toString('base64url'),
 };
 
 const envPath = join(ROOT, '.env');

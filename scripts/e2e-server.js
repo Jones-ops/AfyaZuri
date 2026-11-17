@@ -7,6 +7,7 @@ import { randomBytes } from 'node:crypto';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { startMocks } from './lib/mocks.js';
 import { ROOT, migrateAndSeed, startPostgres } from './lib/pg.js';
 
 // One set of keys for both the demo seed (which encrypts patient phones and IDs) and the API.
@@ -21,6 +22,8 @@ const dataDir = mkdtempSync(join(tmpdir(), 'afyazuri-e2e-'));
 const pg = await startPostgres({ dataDir, port: 55433, password: 'postgres', database: 'afyazuri_e2e' });
 await migrateAndSeed(pg.url, { demo: true });
 
+const mocks = await startMocks({ port: 4301, log: () => {} });
+
 const api = spawn(process.execPath, [join(ROOT, 'apps/api/src/server.js')], {
   stdio: 'inherit',
   env: {
@@ -28,6 +31,9 @@ const api = spawn(process.execPath, [join(ROOT, 'apps/api/src/server.js')], {
     ...keys,
     NODE_ENV: 'test',
     PORT: '4100',
+    MPESA_ENV: 'mock',
+    MPESA_BASE_URL: mocks.url,
+    MPESA_CALLBACK_BASE_URL: 'http://localhost:4100',
     DATABASE_URL: pg.url,
     WEB_DIST: join(ROOT, 'apps/web/dist'),
     COOKIE_SECURE: 'false',

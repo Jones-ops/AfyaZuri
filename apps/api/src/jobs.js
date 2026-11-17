@@ -1,6 +1,7 @@
 import { copyFile, mkdir } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import PgBoss from 'pg-boss';
+import { reconcilePendingStk } from './modules/billing/payments.js';
 import { createBackup, pruneBackups, verifyBackup } from './ops/backup.js';
 
 /**
@@ -9,7 +10,8 @@ import { createBackup, pruneBackups, verifyBackup } from './ops/backup.js';
  * - The outbox dispatcher polls every second for low-latency event delivery.
  * @param {import('./app.js').Deps} deps
  */
-export async function startJobs({ db, config, logger, bus }) {
+export async function startJobs(deps) {
+  const { db, config, logger, bus } = deps;
   const boss = new PgBoss({ connectionString: config.DATABASE_URL, schema: 'pgboss' });
   boss.on('error', (err) => logger.error({ err }, 'pg-boss error'));
   await boss.start();
@@ -56,6 +58,12 @@ export async function startJobs({ db, config, logger, bus }) {
     };
   }
 
+  // Settle M-Pesa requests whose callback never arrived.
+  jobs['mpesa.reconcile'] = async () => {
+    const n = await reconcilePendingStk({ db, bus, crypto: deps.crypto, mpesa: deps.mpesa, logger });
+    if (n) logger.info({ queried: n }, 'mpesa.reconcile');
+  };
+
   for (const [name, handler] of Object.entries(jobs)) {
     await boss.createQueue(name);
     await boss.work(name, handler);
@@ -64,6 +72,7 @@ export async function startJobs({ db, config, logger, bus }) {
   await boss.schedule('idempotency.cleanup', '30 3 * * *', {}, { tz: 'Africa/Nairobi' });
   if (backupsOn) await boss.schedule('backup.nightly', config.BACKUP_CRON, {}, { tz: 'Africa/Nairobi' });
   else await boss.unschedule('backup.nightly').catch(() => {});
+  await boss.schedule('mpesa.reconcile', '* * * * *', {}, { tz: 'Africa/Nairobi' });
 
   let stopped = false;
   const loop = async () => {

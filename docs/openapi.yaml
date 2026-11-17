@@ -19,6 +19,7 @@ tags:
   - name: OPD
   - name: EMR
   - name: Billing
+  - name: Payments
 
 paths:
   /auth/login:
@@ -1152,6 +1153,154 @@ paths:
         x-permissions: [billing.charge.manual],
         parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }],
         responses: { '200': { description: Bill } },
+      }
+
+  /shifts:
+    get:
+      {
+        tags: [Payments],
+        summary: Recent cashier shifts,
+        x-permissions: [billing.read],
+        responses: { '200': { description: Shifts } },
+      }
+    post:
+      {
+        tags: [Payments],
+        summary: 'Open a shift with an opening float (409 SHIFT_ALREADY_OPEN)',
+        x-permissions: [billing.shift.manage],
+        parameters: [{ $ref: '#/components/parameters/Csrf' }],
+        responses: { '201': { description: Shift } },
+      }
+  /shifts/current:
+    get:
+      {
+        tags: [Payments],
+        summary: 'Your open shift with live totals by method ({ shift: null } when none)',
+        x-permissions: [billing.shift.manage],
+        responses: { '200': { description: Shift } },
+      }
+  /shifts/current/close:
+    post:
+      {
+        tags: [Payments],
+        summary: 'Close with declared amounts per method; variance = declared − expected (cash includes the float)',
+        x-permissions: [billing.shift.manage],
+        parameters: [{ $ref: '#/components/parameters/Csrf' }],
+        responses: { '200': { description: Closed shift }, '409': { $ref: '#/components/responses/Error' } },
+      }
+  /bills/{id}/payments:
+    post:
+      tags: [Payments]
+      summary: 'Cash, card or bank payment; issues a receipt; needs an open shift and an Idempotency-Key; a settled pay-first patient is sent on from the cashier'
+      x-permissions: [billing.payment.receive]
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+        - { $ref: '#/components/parameters/Csrf' }
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [method, amount]
+              properties:
+                method: { type: string, enum: [cash, card, bank] }
+                amount: { $ref: '#/components/schemas/Amount' }
+                tendered: { $ref: '#/components/schemas/Amount' }
+                reference: { type: string, description: Required for card and bank }
+      responses:
+        {
+          '201': { description: '{ payment, receipt, bill, changeDue, sentTo }' },
+          '409': { $ref: '#/components/responses/Error' },
+        }
+  /bills/{id}/mpesa:
+    post:
+      tags: [Payments]
+      summary: Send an M-Pesa STK Push prompt (whole shillings; Idempotency-Key required)
+      x-permissions: [billing.payment.receive]
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+        - { $ref: '#/components/parameters/Csrf' }
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string } }
+      responses: { '201': { description: Pending M-Pesa request }, '502': { $ref: '#/components/responses/Error' } }
+  /mpesa/{id}:
+    get:
+      {
+        tags: [Payments],
+        summary: 'Status of an M-Pesa request: pending, completed (with receipt), cancelled or failed',
+        x-permissions: [billing.read],
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        responses: { '200': { description: Request } },
+      }
+  /mpesa/{id}/query:
+    post:
+      {
+        tags: [Payments],
+        summary: Ask Daraja for the outcome when the callback is late,
+        x-permissions: [billing.payment.receive],
+        parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }],
+        responses: { '200': { description: Request } },
+      }
+  /mpesa-unmatched:
+    get:
+      {
+        tags: [Payments],
+        summary: Paybill payments whose account number matched no bill (phones masked),
+        x-permissions: [billing.read],
+        responses: { '200': { description: Unmatched } },
+      }
+  /mpesa/{id}/match:
+    post:
+      {
+        tags: [Payments],
+        summary: Attach an unmatched Paybill payment to a bill,
+        x-permissions: [billing.payment.receive],
+        parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }],
+        responses: { '200': { description: Payment } },
+      }
+  /mpesa/register-c2b:
+    post:
+      {
+        tags: [Payments],
+        summary: Register the Paybill confirmation/validation URLs with Daraja,
+        x-permissions: [settings.manage],
+        parameters: [{ $ref: '#/components/parameters/Csrf' }],
+        responses: { '200': { description: Daraja response } },
+      }
+  /receipts/{id}:
+    get:
+      {
+        tags: [Payments],
+        summary: Receipt for printing (80 mm),
+        x-permissions: [billing.read],
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        responses: { '200': { description: Receipt } },
+      }
+  /receipts/{id}/reprint:
+    post:
+      {
+        tags: [Payments],
+        summary: Reprint (counted and audited; printed as a copy),
+        x-permissions: [billing.read],
+        parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Csrf' }],
+        responses: { '200': { description: Receipt } },
+      }
+  /integrations/mpesa/{token}/stk-callback:
+    post:
+      tags: [Payments]
+      summary: 'Daraja STK callback. Not for staff: no session or CSRF; authenticated by the secret token in the path (MPESA_CALLBACK_TOKEN) and optionally an IP allowlist. Always answers ResultCode 0.'
+      security: []
+      parameters: [{ name: token, in: path, required: true, schema: { type: string } }]
+      responses: { '200': { description: Accepted }, '404': { description: Wrong token or IP } }
+  /integrations/mpesa/{token}/c2b-confirmation:
+    post:
+      {
+        tags: [Payments],
+        summary: Daraja Paybill confirmation (matched by bill number or MRN; idempotent on TransID),
+        security: [],
+        parameters: [{ name: token, in: path, required: true, schema: { type: string } }],
+        responses: { '200': { description: Accepted } },
       }
 
 components:

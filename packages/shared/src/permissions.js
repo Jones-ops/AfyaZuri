@@ -375,6 +375,7 @@ export const ROLES = {
     permissions: pick([
       'dashboard.read',
       'patients.read',
+      'billing.shift.manage',
       'billing.read',
       'billing.charge.manual',
       'billing.invoice.create',

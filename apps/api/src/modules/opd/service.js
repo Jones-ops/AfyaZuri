@@ -577,82 +577,108 @@ export async function completeTicket({ db, bus }, auth, ticketId, input, meta) {
       throw new AppError(409, 'INVALID_TRANSITION', `A ${t.status.replace('_', ' ')} ticket cannot be completed`, {
         status: t.status,
       });
-    const enc = await trx('encounters').where({ id: t.encounter_id }).forUpdate().first();
-    if (enc.status !== 'open') throw conflict('This visit is closed');
-
-    let target = null; // { queue, routeStep, referredFrom }
-    let finalStatus = 'done';
-    if (input.next.kind === 'service_point') {
-      const sp = await trx('queues as q')
-        .join('service_points as sp', 'sp.id', 'q.service_point_id')
-        .where({ 'sp.id': input.next.servicePointId, 'q.facility_id': facilityId, 'sp.active': true, 'q.active': true })
-        .first('q.*', 'sp.name as service_point_name', 'sp.type as service_point_type', 'sp.department_id');
-      if (!sp) throw badRequest('That service point has no active queue');
-      if (sp.id === queue.id) throw badRequest('The patient is already at this service point');
-      target = { queue: sp, routeStep: t.route_step, referredFrom: t.id };
-      finalStatus = 'referred';
-    } else if (input.next.kind === 'route') {
-      if (t.referred_from_ticket_id) {
-        // A detour (e.g. lab) returns the patient to whoever sent them.
-        const origin = await trx('queue_tickets')
-          .where({ id: t.referred_from_ticket_id })
-          .first('queue_id', 'route_step');
-        target = {
-          queue: await loadQueue(trx, facilityId, origin.queue_id),
-          routeStep: origin.route_step,
-          referredFrom: null,
-        };
-      } else {
-        const steps = await routeFor(trx, facilityId, enc.route_payer_type);
-        const nextStep = (t.route_step ?? 0) + 1;
-        const type = steps[nextStep];
-        if (type && type !== 'exit')
-          target = { queue: await pickQueue(trx, facilityId, type), routeStep: nextStep, referredFrom: null };
-      }
-    }
-
-    const [after] = await trx('queue_tickets')
-      .where({ id: t.id })
-      .update({
-        status: finalStatus,
-        completed_at: trx.fn.now(),
-        served_by: t.served_by ?? auth.userId,
-        outcome_note: input.note ?? null,
-        next_queue_id: target?.queue.id ?? null,
-        updated_by: auth.userId,
-      })
-      .returning('*');
-    await recordAudit(trx, actorOf(auth), meta, {
-      action: 'update',
-      entityType: 'queue_ticket',
-      entityId: t.id,
-      patientId: t.patient_id,
-      before: t,
-      after,
-      metadata: { action: 'complete', next: input.next.kind, to: target?.queue.name ?? 'exit' },
-    });
-
-    if (!target) {
-      await closeWithin(trx, auth, enc, input.note ?? 'Exited', meta);
-      await bus.publish(trx, {
-        type: 'encounter.closed',
-        aggregateType: 'encounter',
-        aggregateId: enc.id,
-        facilityId,
-        payload: {},
-      });
-      return { ticket: toTicket(after, queue), nextTicket: null, encounterClosed: true };
-    }
-    const next = await enqueue(trx, auth, {
-      encounter: enc,
-      queue: target.queue,
-      routeStep: target.routeStep,
-      priority: t.priority,
-      referredFrom: target.referredFrom,
-    });
-    return { ticket: toTicket(after, queue), nextTicket: toTicket(next, target.queue), encounterClosed: false };
+    return completeWithin(trx, bus, auth, t, queue, input, meta);
   });
   return result;
+}
+
+/**
+ * Patient has paid: if they are waiting at a cashier, send them on along their
+ * route (pay-before-service). Runs inside the payment's transaction.
+ * @param {import('knex').Knex.Transaction} trx @param {import('../../lib/events.js').EventBus} bus
+ * @param {AuthContext} auth @param {string} encounterId @param {Meta} meta
+ * @returns {Promise<null | {ticket: any, nextTicket: any, encounterClosed: boolean}>}
+ */
+export async function advanceAfterPayment(trx, bus, auth, encounterId, meta) {
+  const t = await trx('queue_tickets as t')
+    .join('queues as q', 'q.id', 't.queue_id')
+    .join('service_points as sp', 'sp.id', 'q.service_point_id')
+    .where({ 't.encounter_id': encounterId, 'sp.type': 'cashier' })
+    .whereIn('t.status', ACTIVE_STATUSES)
+    .forUpdate('t')
+    .first('t.*');
+  if (!t) return null;
+  const queue = await loadQueue(trx, t.facility_id, t.queue_id);
+  return completeWithin(trx, bus, auth, t, queue, { next: { kind: 'route' }, note: 'Paid' }, meta);
+}
+
+/** Move a ticket on (shared by staff completion and payment-driven advance). */
+async function completeWithin(trx, bus, auth, t, queue, input, meta) {
+  const facilityId = t.facility_id;
+  const enc = await trx('encounters').where({ id: t.encounter_id }).forUpdate().first();
+  if (enc.status !== 'open') throw conflict('This visit is closed');
+
+  let target = null; // { queue, routeStep, referredFrom }
+  let finalStatus = 'done';
+  if (input.next.kind === 'service_point') {
+    const sp = await trx('queues as q')
+      .join('service_points as sp', 'sp.id', 'q.service_point_id')
+      .where({ 'sp.id': input.next.servicePointId, 'q.facility_id': facilityId, 'sp.active': true, 'q.active': true })
+      .first('q.*', 'sp.name as service_point_name', 'sp.type as service_point_type', 'sp.department_id');
+    if (!sp) throw badRequest('That service point has no active queue');
+    if (sp.id === queue.id) throw badRequest('The patient is already at this service point');
+    target = { queue: sp, routeStep: t.route_step, referredFrom: t.id };
+    finalStatus = 'referred';
+  } else if (input.next.kind === 'route') {
+    if (t.referred_from_ticket_id) {
+      // A detour (e.g. lab) returns the patient to whoever sent them.
+      const origin = await trx('queue_tickets')
+        .where({ id: t.referred_from_ticket_id })
+        .first('queue_id', 'route_step');
+      target = {
+        queue: await loadQueue(trx, facilityId, origin.queue_id),
+        routeStep: origin.route_step,
+        referredFrom: null,
+      };
+    } else {
+      const steps = await routeFor(trx, facilityId, enc.route_payer_type);
+      const nextStep = (t.route_step ?? 0) + 1;
+      const type = steps[nextStep];
+      if (type && type !== 'exit')
+        target = { queue: await pickQueue(trx, facilityId, type), routeStep: nextStep, referredFrom: null };
+    }
+  }
+
+  const [after] = await trx('queue_tickets')
+    .where({ id: t.id })
+    .update({
+      status: finalStatus,
+      completed_at: trx.fn.now(),
+      served_by: t.served_by ?? auth.userId,
+      outcome_note: input.note ?? null,
+      next_queue_id: target?.queue.id ?? null,
+      updated_by: auth.userId,
+    })
+    .returning('*');
+  await recordAudit(trx, actorOf(auth), meta, {
+    action: 'update',
+    entityType: 'queue_ticket',
+    entityId: t.id,
+    patientId: t.patient_id,
+    before: t,
+    after,
+    metadata: { action: 'complete', next: input.next.kind, to: target?.queue.name ?? 'exit' },
+  });
+
+  if (!target) {
+    await closeWithin(trx, auth, enc, input.note ?? 'Exited', meta);
+    await bus.publish(trx, {
+      type: 'encounter.closed',
+      aggregateType: 'encounter',
+      aggregateId: enc.id,
+      facilityId,
+      payload: {},
+    });
+    return { ticket: toTicket(after, queue), nextTicket: null, encounterClosed: true };
+  }
+  const next = await enqueue(trx, auth, {
+    encounter: enc,
+    queue: target.queue,
+    routeStep: target.routeStep,
+    priority: t.priority,
+    referredFrom: target.referredFrom,
+  });
+  return { ticket: toTicket(after, queue), nextTicket: toTicket(next, target.queue), encounterClosed: false };
 }
 
 // ---- Route configuration -----------------------------------------------------

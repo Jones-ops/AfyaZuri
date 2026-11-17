@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom';
 import { formatKES, sumAmounts, toCents } from '@afyazuri/shared';
 import { api } from '../api.js';
 import { Can } from '../auth.jsx';
+import PaymentPanel from '../components/billing/PaymentPanel.jsx';
 import { Badge, ErrorMessage, Field, PageHeader, Spinner, formatDateTime } from '../components/ui.jsx';
 import { BILL_STATUS_TONE } from './Bills.jsx';
 
@@ -39,6 +40,9 @@ export default function BillDetail({ children }) {
         }
       />
       <Totals bill={b} />
+      <Can perm="billing.payment.receive">
+        <PaymentPanel bill={b} />
+      </Can>
       {children?.(b)}
       <Lines bill={b} />
       <Payments bill={b} />

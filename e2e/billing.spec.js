@@ -19,7 +19,10 @@ test('check-in posts charges automatically; the billing office adjusts the bill'
   const nurse = await nurseCtx.newPage();
   await signIn(nurse, 'cashier');
   await nurse.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Queues' }).click();
-  await nurse.getByRole('link', { name: /^Cashier/ }).click();
+  await nurse
+    .getByRole('main')
+    .getByRole('link', { name: /^Cashier/ })
+    .click();
   await expect(nurse.getByRole('listitem').filter({ hasText: patient.fullName })).toContainText('Unpaid KES 700.00');
   await nurseCtx.close();
 

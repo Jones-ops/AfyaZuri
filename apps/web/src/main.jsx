@@ -30,6 +30,8 @@ const PatientChart = lazy(() => import('./pages/PatientChart.jsx'));
 const Bills = lazy(() => import('./pages/Bills.jsx'));
 const BillDetail = lazy(() => import('./pages/BillDetail.jsx'));
 const BillingSetup = lazy(() => import('./pages/BillingSetup.jsx'));
+const Cashier = lazy(() => import('./pages/Cashier.jsx'));
+const Receipt = lazy(() => import('./pages/Receipt.jsx'));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
@@ -191,6 +193,22 @@ function App() {
             element={
               <Protected perm="billing.pricelist.manage">
                 <BillingSetup />
+              </Protected>
+            }
+          />
+          <Route
+            path="cashier"
+            element={
+              <Protected perm="billing.shift.manage">
+                <Cashier />
+              </Protected>
+            }
+          />
+          <Route
+            path="billing/receipts/:id"
+            element={
+              <Protected perm="billing.read">
+                <Receipt />
               </Protected>
             }
           />
