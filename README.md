@@ -4,7 +4,7 @@
 
 Afyazuri is a hospital management system for Kenyan health facilities (Level 2–5: dispensaries, health centres, sub-county, county and private hospitals). It is a modular monolith: one Node.js service, one PostgreSQL database and one installable web app that keeps working on slow and intermittent connections.
 
-> **Status:** Phase 1 (foundation) of 10 is complete. See [Delivery status](#delivery-status).
+> **Status:** Phases 1 (foundation) and 2 (patients, OPD and EMR) of 10 are complete. See [Delivery status](#delivery-status).
 
 ## Requirements
 
@@ -69,6 +69,7 @@ Nightly encrypted backups run automatically when `BACKUP_KEY` and `BACKUP_DIR` a
 | `npm run secrets`                                             | Create/complete `.env` with random secrets (never overwrites existing values) |
 | `npm run admin:create -- --username u --name "Full Name"`     | Create the first Super Admin                                                  |
 | `npm run icd:import -- <SimpleTabulation file>`               | Load the official WHO ICD-11 code list (a small starter set ships by default) |
+| `npm run bench:search`                                        | Time patient search against 500 000 synthetic patients (docs/performance.md)  |
 | `npm run backup`                                              | Encrypted backup now, verify it, apply retention, copy off-site               |
 | `npm run backup -- verify <file>`                             | Check a backup decrypts and is intact                                         |
 | `npm run backup -- restore <file> --database-url <url> --yes` | Restore (destructive)                                                         |
@@ -124,19 +125,20 @@ e2e/            Playwright tests
 - [Data protection](docs/data-protection.md): how the Kenya Data Protection Act 2019 and the Digital Health Act 2023 are addressed
 - [On-premise install](docs/onprem-install.md)
 - [Backup and restore](docs/backup-restore.md)
-- [Phase 1 demo script](docs/demo-phase-1.md)
+- [Phase 1 demo script](docs/demo-phase-1.md) and [Phase 2 demo script](docs/demo-phase-2.md)
+- [Performance](docs/performance.md)
 
 ## Delivery status
 
-| Phase | Scope                                                                        | Status                                                                                                                                      |
-| ----- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | Foundation: auth, users, roles, facilities, audit log, UI shell, CI, backups | ✅ Done                                                                                                                                     |
-| 2     | Patients and OPD: registration, duplicates, search, queues, triage, EMR      | In progress: patients ✅, OPD queues ✅, EMR ✅ (vitals, signed notes, ICD-11 diagnoses, allergies, timeline); demo data and hardening next |
-| 3     | Billing core, M-Pesa (mocked Daraja), receipts, cashier shifts               | Planned                                                                                                                                     |
-| 4     | Pharmacy and inventory                                                       | Planned                                                                                                                                     |
-| 5     | Lab and imaging                                                              | Planned                                                                                                                                     |
-| 6     | Inpatient                                                                    | Planned                                                                                                                                     |
-| 7     | Claims and SHA (mock SHA server)                                             | Planned                                                                                                                                     |
-| 8     | Reports and dashboard                                                        | Planned                                                                                                                                     |
-| 9     | Offline and low-bandwidth hardening                                          | Planned                                                                                                                                     |
-| 10    | Data protection and ops hardening                                            | Planned                                                                                                                                     |
+| Phase | Scope                                                                        | Status  |
+| ----- | ---------------------------------------------------------------------------- | ------- |
+| 1     | Foundation: auth, users, roles, facilities, audit log, UI shell, CI, backups | ✅ Done |
+| 2     | Patients and OPD: registration, duplicates, search, queues, triage, EMR      | ✅ Done |
+| 3     | Billing core, M-Pesa (mocked Daraja), receipts, cashier shifts               | Planned |
+| 4     | Pharmacy and inventory                                                       | Planned |
+| 5     | Lab and imaging                                                              | Planned |
+| 6     | Inpatient                                                                    | Planned |
+| 7     | Claims and SHA (mock SHA server)                                             | Planned |
+| 8     | Reports and dashboard                                                        | Planned |
+| 9     | Offline and low-bandwidth hardening                                          | Planned |
+| 10    | Data protection and ops hardening                                            | Planned |

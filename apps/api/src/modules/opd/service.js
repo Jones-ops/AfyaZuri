@@ -1,3 +1,4 @@
+import '../../lib/db-types.js';
 // Outpatient flow: check-in → encounter + queue ticket → service points along a
 // configurable route (e.g. Registration → Cashier → Triage → Consultation → Exit),
 // with detours (Consultation → Lab → back to Consultation).

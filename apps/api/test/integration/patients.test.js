@@ -195,6 +195,13 @@ describe('search', () => {
     expect(byName[0]).not.toHaveProperty('phone');
   });
 
+  it('falls back to similar spellings when nothing matches exactly', async () => {
+    const res = (await clerk.get(`/api/v1/patients?q=${encodeURIComponent(`wanjikuu ${p.lastName}`)}`)).body;
+    expect(res.data.map((x) => x.id)).toContain(p.id);
+    expect(res.data.find((x) => x.id === p.id).matchedBy).toBe('similar_name');
+    expect(res.hint).toMatch(/similar names/);
+  });
+
   it('explains short queries', async () => {
     const res = await clerk.get('/api/v1/patients?q=wa');
     expect(res.body.data).toEqual([]);

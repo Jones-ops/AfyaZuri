@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import knex from 'knex';
 import knexConfig from '../../../knexfile.js';
 import { assertUtf8, ensureDatabase, startCluster } from '../../../scripts/lib/pg.js';
+import { TEST_KEYS } from './keys.js';
 
 /** @param {{provide: (key: string, value: unknown) => void}} ctx */
 export default async function setup({ provide }) {
@@ -24,6 +25,7 @@ export default async function setup({ provide }) {
   await assertUtf8(db);
   await db.raw('DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;');
   await db.migrate.latest();
+  Object.assign(process.env, TEST_KEYS); // demo patients are encrypted with the keys the tests use
   await db.seed.run();
   await db.destroy();
 

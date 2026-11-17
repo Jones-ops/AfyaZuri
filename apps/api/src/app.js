@@ -6,7 +6,7 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
-import pg from 'pg';
+import './lib/db-types.js';
 import pinoHttp from 'pino-http';
 import { AppError, errorHandler } from './lib/errors.js';
 import { safeUrl } from './lib/logger.js';
@@ -19,9 +19,6 @@ import { emrRoutes } from './modules/emr/routes.js';
 import { opdRoutes } from './modules/opd/routes.js';
 import { patientRoutes } from './modules/patients/routes.js';
 import { userRoutes } from './modules/users/routes.js';
-
-// Calendar dates (e.g. date of birth) stay 'YYYY-MM-DD' strings; never time-zone-shifted Date objects.
-pg.types.setTypeParser(pg.types.builtins.DATE, (v) => v);
 
 /**
  * @typedef {Object} Deps

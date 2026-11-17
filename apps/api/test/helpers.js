@@ -1,4 +1,3 @@
-import { randomBytes } from 'node:crypto';
 import knex from 'knex';
 import request from 'supertest';
 import { inject } from 'vitest';
@@ -7,14 +6,9 @@ import { loadConfig } from '../src/config.js';
 import { FieldCrypto } from '../src/lib/crypto.js';
 import { EventBus } from '../src/lib/events.js';
 import { createLogger } from '../src/lib/logger.js';
+import { TEST_KEYS as keys } from './keys.js';
 
 export const DEMO_PASSWORD = 'Afyazuri#2026';
-
-const keys = {
-  JWT_SECRET: randomBytes(48).toString('hex'),
-  ENCRYPTION_KEY: randomBytes(32).toString('base64'),
-  BLIND_INDEX_KEY: randomBytes(32).toString('base64'),
-};
 
 /**
  * Build an app against the integration database.

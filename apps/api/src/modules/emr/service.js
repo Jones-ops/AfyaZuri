@@ -1,3 +1,4 @@
+import '../../lib/db-types.js';
 // Electronic medical record: vitals, SOAP notes (signed and locked, corrected by
 // addenda), ICD-coded diagnoses, allergies, problem list and the patient timeline.
 // Every read and write goes through the clinical-access check (emr.read, plus

@@ -81,6 +81,13 @@ describe('config', () => {
     expect(c.cookieSecure).toBe(false);
     expect(loadConfig({ ...env, NODE_ENV: 'production' }).cookieSecure).toBe(true);
   });
+  it('resolves relative paths from the repository root, not the working directory', () => {
+    const c = loadConfig({ ...env, BACKUP_DIR: 'backups', WEB_DIST: 'apps/web/dist', BACKUP_OFFSITE_DIR: '/mnt/nas' });
+    expect(c.BACKUP_DIR.replace(/\\/g, '/')).toMatch(/\/backups$/);
+    expect(c.BACKUP_DIR).not.toMatch(/apps[\\/]api[\\/]backups/);
+    expect(c.WEB_DIST.replace(/\\/g, '/')).toMatch(/\/apps\/web\/dist$/);
+    expect(c.BACKUP_OFFSITE_DIR).toBe('/mnt/nas');
+  });
   it('explains missing secrets', () => {
     expect(() => loadConfig({})).toThrow(/JWT_SECRET[\s\S]*ENCRYPTION_KEY/);
   });

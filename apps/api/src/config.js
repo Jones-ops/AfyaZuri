@@ -1,4 +1,10 @@
+import { isAbsolute, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
+
+/** Repository root: relative paths in configuration are resolved from here, never the working directory. */
+export const REPO_ROOT = resolve(fileURLToPath(import.meta.url), '../../../..');
+const fromRoot = (p) => (p && !isAbsolute(p) ? resolve(REPO_ROOT, p) : p);
 
 const bool = z.enum(['true', 'false', '1', '0']).transform((v) => v === 'true' || v === '1');
 
@@ -71,6 +77,12 @@ export function loadConfig(env = process.env) {
     throw new Error('Invalid configuration:\n  Set both TLS_CERT_FILE and TLS_KEY_FILE, or neither');
   return {
     ...c,
+    // e.g. BACKUP_DIR=backups always means <repo>/backups, whichever folder the process started in.
+    WEB_DIST: fromRoot(c.WEB_DIST),
+    TLS_CERT_FILE: fromRoot(c.TLS_CERT_FILE),
+    TLS_KEY_FILE: fromRoot(c.TLS_KEY_FILE),
+    BACKUP_DIR: fromRoot(c.BACKUP_DIR),
+    BACKUP_OFFSITE_DIR: fromRoot(c.BACKUP_OFFSITE_DIR),
     cookieSecure: c.COOKIE_SECURE ?? c.NODE_ENV === 'production',
     corsOrigins: c.CORS_ORIGINS.split(',')
       .map((s) => s.trim())

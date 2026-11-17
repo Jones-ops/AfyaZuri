@@ -5,7 +5,13 @@ import { api, qs } from '../api.js';
 import { Can } from '../auth.jsx';
 import { Badge, EmptyState, ErrorMessage, PageHeader, Spinner } from '../components/ui.jsx';
 
-const MATCH_LABEL = { mrn: 'MRN', phone: 'Phone', identifier: 'ID number', name: null };
+const MATCH_LABEL = {
+  mrn: 'MRN',
+  phone: 'Phone',
+  identifier: 'ID number',
+  similar_name: 'similar spelling',
+  name: null,
+};
 
 /** Debounce a value so search runs after the user pauses typing (fewer requests on slow links). */
 function useDebounced(value, ms = 300) {
@@ -73,6 +79,11 @@ export default function Patients() {
           autoComplete="off"
         />
       </form>
+      {rows.length > 0 && hint && (
+        <p className="mb-2 text-sm text-amber-900" role="status">
+          {hint}
+        </p>
+      )}
       <div className="card overflow-x-auto">
         {term.length < 2 ? (
           <EmptyState title="Start typing to search">Results appear as you type.</EmptyState>

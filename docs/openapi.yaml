@@ -1111,7 +1111,7 @@ components:
         age: { type: string, example: '36 y', description: 'days under 1 month, months under 2 years, then years' }
         phoneMasked: { type: [string, 'null'], example: '07•• ••• 678' }
         isRestricted: { type: boolean }
-        matchedBy: { type: string, enum: [mrn, phone, identifier, name] }
+        matchedBy: { type: string, enum: [mrn, phone, identifier, name, similar_name] }
     Patient:
       allOf:
         - $ref: '#/components/schemas/PatientSummary'

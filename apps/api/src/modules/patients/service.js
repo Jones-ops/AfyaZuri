@@ -1,3 +1,4 @@
+import '../../lib/db-types.js';
 import { ageLabel, dobFromEstimatedAge, todayNairobi } from '@afyazuri/shared';
 import { AppError, badRequest, conflict, forbidden, notFound } from '../../lib/errors.js';
 import { decodeCursor, encodeCursor } from '../../lib/http.js';
@@ -341,15 +342,29 @@ export async function searchPatients({ db, crypto }, auth, query) {
   let nameIds = [];
   let hasMore = false;
   const canNameSearch = c.nameWords.some((w) => w.length >= 3);
+  const fuzzy = { used: false };
   if (canNameSearch) {
+    const text = c.nameWords.join(' ');
+    // Every word must appear (substring); ranked nearest-first via the GiST trigram index.
     const q = base();
     for (const w of c.nameWords) q.whereRaw('p.search_name LIKE ?', [`%${w.replace(/[%_\\]/g, '\\$&')}%`]);
-    const ids = await q
-      .orderByRaw('similarity(p.search_name, ?) DESC, p.last_name, p.id', [c.nameWords.join(' ')])
+    let ids = await q
+      .orderByRaw('p.search_name <-> ?, p.id', [text])
       .offset(offset)
       .limit(query.limit + 1)
       .pluck('p.id');
-    hasMore = ids.length > query.limit;
+    // Nothing contains every word: fall back to typo-tolerant similarity (first page only).
+    if (!ids.length && offset === 0) {
+      // Nearest-neighbour scan on the GiST index (no WHERE %, which would make the planner
+      // use GIN and recheck thousands of rows); keep only reasonably similar names.
+      const near = await base()
+        .select('p.id', db.raw('p.search_name <-> ? AS dist', [text]))
+        .orderByRaw('p.search_name <-> ?', [text])
+        .limit(query.limit);
+      ids = near.filter((r) => r.dist <= 0.7).map((r) => r.id);
+      fuzzy.used = ids.length > 0;
+    }
+    hasMore = !fuzzy.used && ids.length > query.limit;
     nameIds = ids.slice(0, query.limit).filter((id) => !exact.has(id));
   }
 
@@ -366,9 +381,12 @@ export async function searchPatients({ db, crypto }, auth, query) {
   const rows = await db('patients').whereIn('id', order);
   const byId = new Map(rows.map((r) => [r.id, r]));
   return {
-    data: order.map((id) => ({ ...toSummary(byId.get(id), crypto), matchedBy: exact.get(id) ?? 'name' })),
+    data: order.map((id) => ({
+      ...toSummary(byId.get(id), crypto),
+      matchedBy: exact.get(id) ?? (fuzzy.used ? 'similar_name' : 'name'),
+    })),
     nextCursor: hasMore ? encodeCursor({ o: offset + query.limit }) : null,
-    hint: null,
+    hint: fuzzy.used ? 'No exact name match; showing similar names' : null,
   };
 }
 

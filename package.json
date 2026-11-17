@@ -20,6 +20,7 @@
     "admin:create": "node scripts/create-admin.js",
     "backup": "node scripts/backup.js",
     "icd:import": "node scripts/import-icd11.js",
+    "bench:search": "node scripts/bench-search.js",
     "db:local": "node scripts/local-postgres.js",
     "db:migrate": "knex --knexfile knexfile.js migrate:latest",
     "db:rollback": "knex --knexfile knexfile.js migrate:rollback",

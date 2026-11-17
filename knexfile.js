@@ -1,4 +1,12 @@
 // Knex configuration shared by the CLI, the API and the test harness.
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+// The Knex CLI (npm run db:migrate / db:seed) reads .env too, so demo seeding can
+// encrypt patient fields with the same keys the API uses. Real environment variables win.
+const envFile = fileURLToPath(new URL('./.env', import.meta.url));
+if (existsSync(envFile)) process.loadEnvFile(envFile);
+
 const connection = process.env.DATABASE_URL ?? 'postgres://postgres:postgres@localhost:54329/afyazuri';
 
 /** @type {import('knex').Knex.Config} */
