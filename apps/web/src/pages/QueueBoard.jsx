@@ -4,7 +4,7 @@ import { Link, useParams } from 'react-router-dom';
 import { formatKES } from '@afyazuri/shared';
 import { api } from '../api.js';
 import { Can } from '../auth.jsx';
-import { Alert, Badge, EmptyState, ErrorMessage, PageHeader, Spinner } from '../components/ui.jsx';
+import { Alert, Badge, EmptyState, ErrorMessage, PageHeader, PageSkeleton } from '../components/ui.jsx';
 
 const PRIORITY = { 2: ['Emergency', 'red'], 1: ['Urgent', 'amber'] };
 const STEP_LABEL = {
@@ -46,7 +46,7 @@ export default function QueueBoard() {
     },
   });
 
-  if (board.isPending) return <Spinner />;
+  if (board.isPending) return <PageSkeleton />;
   if (board.error) return <ErrorMessage error={board.error} />;
   const b = board.data;
   const destinations = (queues.data?.data ?? []).filter(

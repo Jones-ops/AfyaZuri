@@ -7,7 +7,7 @@ import DiagnosesPanel from '../components/emr/DiagnosesPanel.jsx';
 import NotesPanel from '../components/emr/NotesPanel.jsx';
 import VitalsPanel from '../components/emr/VitalsPanel.jsx';
 import PatientBanner from '../components/PatientBanner.jsx';
-import { Alert, Badge, ErrorMessage, PageHeader, Spinner, formatDateTime } from '../components/ui.jsx';
+import { Alert, Badge, ErrorMessage, PageHeader, Spinner, formatDateTime, PageSkeleton } from '../components/ui.jsx';
 import { usePatient } from './PatientDetail.jsx';
 
 /** One visit's clinical workspace: vitals, notes and diagnoses. */
@@ -27,7 +27,7 @@ export default function EncounterWorkspace() {
     qc.invalidateQueries({ queryKey: ['patient', visit.data?.patient.id] });
   };
 
-  if (visit.isPending || (visit.data && patient.isPending)) return <Spinner />;
+  if (visit.isPending || (visit.data && patient.isPending)) return <PageSkeleton />;
   if (visit.error) return <ErrorMessage error={visit.error} />;
   if (patient.error) return <ErrorMessage error={patient.error} />;
   const v = visit.data;

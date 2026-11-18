@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
-import { ErrorMessage, Spinner } from '../components/ui.jsx';
+import { ErrorMessage, PageSkeleton } from '../components/ui.jsx';
 import { usePatient } from './PatientDetail.jsx';
 
 /**
@@ -21,7 +21,7 @@ export default function PatientCard() {
       .then(setQr);
   }, [q.data]);
 
-  if (q.isPending) return <Spinner />;
+  if (q.isPending) return <PageSkeleton />;
   if (q.error) return <ErrorMessage error={q.error} />;
   const p = q.data;
 

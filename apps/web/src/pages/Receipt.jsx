@@ -2,7 +2,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { formatKES } from '@afyazuri/shared';
 import { api } from '../api.js';
-import { ErrorMessage, Spinner } from '../components/ui.jsx';
+import { ErrorMessage, PageSkeleton } from '../components/ui.jsx';
 
 const METHOD = { cash: 'Cash / Pesa taslimu', mpesa: 'M-Pesa', card: 'Card / Kadi', bank: 'Bank / Benki' };
 const when = (v) =>
@@ -18,7 +18,7 @@ export default function Receipt() {
     mutationFn: () => api.post(`/receipts/${id}/reprint`),
     onSuccess: () => window.print(),
   });
-  if (r.isPending) return <Spinner />;
+  if (r.isPending) return <PageSkeleton />;
   if (r.error) return <ErrorMessage error={r.error} />;
   const d = r.data;
   const Row = ({ label, value, strong }) => (

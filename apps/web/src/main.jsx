@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from './auth.jsx';
 import Layout from './components/Layout.jsx';
-import { Spinner } from './components/ui.jsx';
+import { PageSkeleton } from './components/ui.jsx';
 import './i18n.js';
 import './index.css';
 import Login from './pages/Login.jsx';
@@ -39,7 +39,7 @@ const queryClient = new QueryClient({
 
 function Protected({ children, perm }) {
   const { me, loading, can } = useAuth();
-  if (loading) return <Spinner />;
+  if (loading) return <PageSkeleton />;
   if (!me) return <Navigate to="/login" replace />;
   if (me.user.mustChangePassword) return <Account forced />;
   if (perm && !can(perm)) return <p className="p-6 text-sm text-slate-700">You do not have access to this page.</p>;
@@ -48,7 +48,7 @@ function Protected({ children, perm }) {
 
 function App() {
   return (
-    <Suspense fallback={<Spinner />}>
+    <Suspense fallback={<PageSkeleton />}>
       <Routes>
         <Route path="/login" element={<Login />} />
         {/* Full-screen waiting-room display, outside the app shell. */}

@@ -16,6 +16,7 @@ import {
   PageHeader,
   Spinner,
   formatDateTime,
+  PageSkeleton,
 } from '../components/ui.jsx';
 import { usePatient } from './PatientDetail.jsx';
 
@@ -40,7 +41,7 @@ export default function PatientChart() {
   const qc = useQueryClient();
   const refresh = () => ['summary', 'timeline', 'patient'].forEach((k) => qc.invalidateQueries({ queryKey: [k, id] }));
 
-  if (patient.isPending) return <Spinner />;
+  if (patient.isPending) return <PageSkeleton />;
   if (patient.error) return <ErrorMessage error={patient.error} />;
   const p = patient.data;
   const events = tl.data?.pages.flatMap((x) => x.data) ?? [];

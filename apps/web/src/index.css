@@ -4,10 +4,68 @@
   --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --color-brand-50: #f0fdfa;
   --color-brand-100: #ccfbf1;
+  --color-brand-300: #5eead4;
+  --color-brand-500: #14b8a6;
   --color-brand-600: #0d9488;
   --color-brand-700: #0f766e;
   --color-brand-800: #115e59;
   --color-brand-900: #134e4a;
+
+  /* Skeuomorphic depth: a lit top edge, a soft contact shadow and a longer ambient one. */
+  --shadow-raised:
+    inset 0 1px 0 rgb(255 255 255 / 0.9), 0 1px 2px rgb(15 23 42 / 0.07), 0 6px 16px -8px rgb(15 23 42 / 0.18);
+  --shadow-lifted:
+    inset 0 1px 0 rgb(255 255 255 / 0.95), 0 2px 4px rgb(15 23 42 / 0.08), 0 14px 28px -12px rgb(15 23 42 / 0.28);
+  --shadow-pressed: inset 0 2px 4px rgb(15 23 42 / 0.14), inset 0 0 0 1px rgb(15 23 42 / 0.04);
+  --shadow-well: inset 0 2px 3px rgb(15 23 42 / 0.08), inset 0 0 0 1px rgb(255 255 255 / 0.4);
+
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-page-in: az-page-in 280ms var(--ease-out-soft) both;
+  --animate-pop-in: az-pop-in 260ms var(--ease-spring) both;
+}
+
+@keyframes az-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes az-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes az-dot-ring {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes az-shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+@keyframes az-ken-burns {
+  from {
+    transform: scale(1.08);
+  }
+  to {
+    transform: scale(1);
+  }
 }
 
 @layer base {
@@ -15,32 +73,129 @@
     -webkit-text-size-adjust: 100%;
   }
   body {
-    @apply bg-slate-50 text-slate-900 antialiased;
+    @apply text-slate-900 antialiased;
+    background-color: #eef2f5;
+    background-image:
+      radial-gradient(1200px 500px at 100% -10%, rgb(204 251 241 / 0.55), transparent 60%),
+      linear-gradient(180deg, #f6f8fa 0%, #eceff3 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
   }
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-brand-700;
   }
 }
 
+/* Buttons: domed, lit from above; they sink when pressed. */
 @utility btn {
-  @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+  @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium select-none disabled:cursor-not-allowed disabled:opacity-50;
+  transition:
+    transform 120ms var(--ease-out-soft),
+    box-shadow 160ms var(--ease-out-soft),
+    background-color 160ms,
+    filter 160ms;
+  &:not(:disabled):active {
+    transform: translateY(1px) scale(0.99);
+  }
 }
 @utility btn-primary {
-  @apply btn bg-brand-700 text-white hover:bg-brand-800;
+  @apply btn text-white;
+  background-image: linear-gradient(
+    180deg,
+    var(--color-brand-600) 0%,
+    var(--color-brand-700) 55%,
+    var(--color-brand-800) 100%
+  );
+  border: 1px solid var(--color-brand-900);
+  text-shadow: 0 -1px 0 rgb(0 0 0 / 0.25);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.28),
+    0 1px 2px rgb(15 23 42 / 0.2),
+    0 4px 10px -4px rgb(15 118 110 / 0.55);
+  &:not(:disabled):hover {
+    filter: brightness(1.07);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.3),
+      0 2px 3px rgb(15 23 42 / 0.2),
+      0 8px 16px -6px rgb(15 118 110 / 0.6);
+  }
+  &:not(:disabled):active {
+    filter: brightness(0.95);
+    box-shadow: inset 0 2px 5px rgb(0 0 0 / 0.3);
+  }
 }
 @utility btn-secondary {
-  @apply btn border border-slate-300 bg-white text-slate-800 hover:bg-slate-100;
+  @apply btn border border-slate-300 text-slate-800;
+  background-image: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 1px 2px rgb(15 23 42 / 0.08),
+    0 3px 8px -4px rgb(15 23 42 / 0.18);
+  &:not(:disabled):hover {
+    background-image: linear-gradient(180deg, #ffffff 0%, #e8eef4 100%);
+  }
+  &:not(:disabled):active {
+    background-image: linear-gradient(180deg, #e2e8f0 0%, #f1f5f9 100%);
+    box-shadow: var(--shadow-pressed);
+  }
 }
 @utility btn-danger {
-  @apply btn bg-red-700 text-white hover:bg-red-800;
+  @apply btn text-white;
+  background-image: linear-gradient(180deg, #dc2626 0%, #b91c1c 55%, #991b1b 100%);
+  border: 1px solid #7f1d1d;
+  text-shadow: 0 -1px 0 rgb(0 0 0 / 0.25);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.25),
+    0 1px 2px rgb(15 23 42 / 0.2),
+    0 4px 10px -4px rgb(185 28 28 / 0.5);
+  &:not(:disabled):hover {
+    filter: brightness(1.07);
+  }
+  &:not(:disabled):active {
+    box-shadow: inset 0 2px 5px rgb(0 0 0 / 0.3);
+  }
+}
+
+/* A raised panel that lifts toward you when it is a link. */
+@utility card-link {
+  transition:
+    transform 220ms var(--ease-out-soft),
+    box-shadow 220ms var(--ease-out-soft),
+    border-color 220ms;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lifted);
+    border-color: var(--color-brand-300);
+  }
+  &:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-pressed);
+    transition-duration: 80ms;
+  }
 }
 
 @layer components {
+  /* Inputs are recessed wells. */
   .input {
-    @apply block min-h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-500 focus:border-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-600/30;
+    @apply block min-h-10 w-full rounded-md border border-slate-300 px-3 text-sm text-slate-900 placeholder:text-slate-500 focus:border-brand-700 focus:outline-none;
+    background-image: linear-gradient(180deg, #f8fafc 0%, #ffffff 40%);
+    box-shadow: var(--shadow-well);
+    transition:
+      border-color 160ms,
+      box-shadow 160ms;
+  }
+  .input:focus {
+    box-shadow:
+      var(--shadow-well),
+      0 0 0 3px rgb(13 148 136 / 0.25);
   }
   .card {
-    @apply rounded-lg border border-slate-200 bg-white;
+    @apply rounded-lg border border-slate-200/90;
+    background-image: linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+    box-shadow: var(--shadow-raised);
+  }
+  a.card {
+    @apply card-link;
   }
   .label {
     @apply mb-1 block text-sm font-medium text-slate-700;
@@ -49,10 +204,146 @@
     @apply w-full text-left text-sm;
   }
   .table-base th {
-    @apply border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold tracking-wide text-slate-600 uppercase;
+    @apply border-b border-slate-200 px-3 py-2 text-xs font-semibold tracking-wide text-slate-600 uppercase;
+    background-image: linear-gradient(180deg, #f8fafc 0%, #eef2f6 100%);
+    box-shadow: inset 0 1px 0 #fff;
   }
   .table-base td {
     @apply border-b border-slate-100 px-3 py-2 align-top;
+  }
+  .table-base tbody tr {
+    transition: background-color 140ms;
+  }
+  .table-base tbody tr:hover {
+    @apply bg-brand-50/50;
+  }
+
+  /* Ring of beads going round: eight dots, each a step dimmer, the ring stepping one bead at a time. */
+  .dot-ring {
+    position: relative;
+    display: inline-block;
+    width: var(--ring-size, 2.25rem);
+    height: var(--ring-size, 2.25rem);
+    animation: az-dot-ring 0.9s steps(8, end) infinite;
+  }
+  .dot-ring > i {
+    position: absolute;
+    inset: 0;
+  }
+  .dot-ring > i::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 22%;
+    height: 22%;
+    translate: -50% 0;
+    border-radius: 9999px;
+    background: radial-gradient(circle at 35% 30%, var(--color-brand-300), var(--color-brand-700) 70%);
+    box-shadow:
+      0 1px 2px rgb(15 23 42 / 0.35),
+      inset 0 -1px 1px rgb(0 0 0 / 0.2);
+  }
+  .dot-ring > i:nth-child(1) {
+    transform: rotate(0deg);
+  }
+  .dot-ring > i:nth-child(2) {
+    transform: rotate(45deg);
+    opacity: 0.88;
+  }
+  .dot-ring > i:nth-child(3) {
+    transform: rotate(90deg);
+    opacity: 0.76;
+  }
+  .dot-ring > i:nth-child(4) {
+    transform: rotate(135deg);
+    opacity: 0.64;
+  }
+  .dot-ring > i:nth-child(5) {
+    transform: rotate(180deg);
+    opacity: 0.52;
+  }
+  .dot-ring > i:nth-child(6) {
+    transform: rotate(225deg);
+    opacity: 0.4;
+  }
+  .dot-ring > i:nth-child(7) {
+    transform: rotate(270deg);
+    opacity: 0.28;
+  }
+  .dot-ring > i:nth-child(8) {
+    transform: rotate(315deg);
+    opacity: 0.16;
+  }
+  /* The ring turns counter to the fade so the bright bead leads. */
+  .dot-ring {
+    animation-direction: reverse;
+  }
+
+  /* Skeleton bones are pressed into the surface, with a slow sheen passing over them. */
+  .skeleton {
+    @apply rounded-md;
+    background-color: #e5eaf0;
+    background-image: linear-gradient(100deg, transparent 20%, rgb(255 255 255 / 0.75) 50%, transparent 80%);
+    background-size: 200% 100%;
+    background-repeat: no-repeat;
+    box-shadow: inset 0 1px 2px rgb(15 23 42 / 0.1);
+    animation: az-shimmer 1.6s ease-in-out infinite;
+  }
+
+  .page-in {
+    animation: var(--animate-page-in);
+  }
+  .pop-in {
+    animation: var(--animate-pop-in);
+  }
+  .photo-pan {
+    animation: az-ken-burns 9s var(--ease-out-soft) both;
+  }
+
+  /* Glossy top bar. */
+  .app-bar {
+    background-image: linear-gradient(
+      180deg,
+      var(--color-brand-600) 0%,
+      var(--color-brand-700) 45%,
+      var(--color-brand-800) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.22),
+      inset 0 -1px 0 rgb(0 0 0 / 0.2),
+      0 2px 8px -2px rgb(15 23 42 / 0.35);
+  }
+  .nav-item {
+    transition:
+      background-color 160ms,
+      box-shadow 160ms,
+      color 160ms,
+      transform 120ms;
+  }
+  .nav-item:active {
+    transform: translateY(1px);
+  }
+  .nav-item[aria-current='page'] {
+    background-image: linear-gradient(180deg, #e6faf6 0%, var(--color-brand-50) 100%);
+    box-shadow: var(--shadow-pressed);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* Keep a gentle, non-moving cue that something is loading. */
+  .dot-ring,
+  .skeleton {
+    animation: none !important;
   }
 }
 
@@ -61,6 +352,10 @@
     display: none !important;
   }
   body {
+    background: #fff;
+  }
+  .card {
+    box-shadow: none;
     background: #fff;
   }
 }

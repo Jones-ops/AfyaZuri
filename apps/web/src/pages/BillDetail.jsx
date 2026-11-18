@@ -5,7 +5,7 @@ import { formatKES, sumAmounts, toCents } from '@afyazuri/shared';
 import { api } from '../api.js';
 import { Can } from '../auth.jsx';
 import PaymentPanel from '../components/billing/PaymentPanel.jsx';
-import { Badge, ErrorMessage, Field, PageHeader, Spinner, formatDateTime } from '../components/ui.jsx';
+import { Badge, ErrorMessage, Field, PageHeader, formatDateTime, PageSkeleton } from '../components/ui.jsx';
 import { BILL_STATUS_TONE } from './Bills.jsx';
 
 export function useBill(id) {
@@ -16,7 +16,7 @@ export function useBill(id) {
 export default function BillDetail({ children }) {
   const { id } = useParams();
   const bill = useBill(id);
-  if (bill.isPending) return <Spinner />;
+  if (bill.isPending) return <PageSkeleton />;
   if (bill.error) return <ErrorMessage error={bill.error} />;
   const b = bill.data;
   return (

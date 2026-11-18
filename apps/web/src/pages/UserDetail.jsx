@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { Can, useAuth } from '../auth.jsx';
-import { Alert, Badge, ErrorMessage, Field, PageHeader, Spinner, formatDateTime } from '../components/ui.jsx';
+import { Alert, Badge, ErrorMessage, Field, PageHeader, formatDateTime, PageSkeleton } from '../components/ui.jsx';
 
 export default function UserDetail() {
   const { id } = useParams();
@@ -24,7 +24,7 @@ export default function UserDetail() {
     },
   });
 
-  if (user.isPending) return <Spinner />;
+  if (user.isPending) return <PageSkeleton />;
   if (user.error) return <ErrorMessage error={user.error} />;
   const u = user.data;
   const here = me.facility ? u.roles.filter((r) => r.facilityId === me.facility.id) : u.roles;

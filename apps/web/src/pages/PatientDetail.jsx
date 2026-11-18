@@ -8,7 +8,7 @@ import { Can } from '../auth.jsx';
 import CheckIn from '../components/CheckIn.jsx';
 import PatientBanner from '../components/PatientBanner.jsx';
 import PatientFields, { ID_FIELDS, fromPatient, issueMap, toPatientBody } from '../components/PatientForm.jsx';
-import { Alert, Badge, ErrorMessage, Field, PageHeader, Spinner, formatDateTime } from '../components/ui.jsx';
+import { Alert, Badge, ErrorMessage, Field, PageHeader, formatDateTime, PageSkeleton } from '../components/ui.jsx';
 
 const ID_LABEL = Object.fromEntries(ID_FIELDS);
 const CONSENT_LABEL = {
@@ -33,7 +33,7 @@ export default function PatientDetail() {
   const q = usePatient(id);
   const [editing, setEditing] = useState(false);
 
-  if (q.isPending) return <Spinner />;
+  if (q.isPending) return <PageSkeleton />;
   if (q.error?.code === 'PATIENT_MERGED')
     return <Navigate to={`/patients/${q.error.details.survivorId}`} replace state={{ merged: true }} />;
   if (q.error) return <ErrorMessage error={q.error} />;

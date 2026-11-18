@@ -26,6 +26,14 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,woff2}'],
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//, /^\/health/, /^\/ready/],
+        // Photos are not precached (keeps the install small on slow links); once seen they are kept.
+        runtimeCaching: [
+          {
+            urlPattern: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/images/'),
+            handler: 'CacheFirst',
+            options: { cacheName: 'az-images', expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 90 } },
+          },
+        ],
       },
     }),
   ],

@@ -103,7 +103,7 @@ export default function Layout() {
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-white focus:p-2">
         Skip to content
       </a>
-      <header className="no-print sticky top-0 z-30 flex h-14 items-center gap-3 bg-brand-700 px-4 text-white">
+      <header className="app-bar no-print sticky top-0 z-30 flex h-14 items-center gap-3 px-4 text-white">
         <button
           className="rounded p-2 hover:bg-brand-800 lg:hidden"
           aria-label="Open menu"
@@ -114,7 +114,16 @@ export default function Layout() {
             <path d="M2 4h16v2H2zM2 9h16v2H2zM2 14h16v2H2z" />
           </svg>
         </button>
-        <span className="font-semibold tracking-tight">{t('appName')}</span>
+        <span className="flex items-center gap-2 font-semibold tracking-tight [text-shadow:0_-1px_0_rgb(0_0_0/0.25)]">
+          <img
+            src="/icon.svg"
+            alt=""
+            width="24"
+            height="24"
+            className="rounded-md bg-white/90 p-0.5 shadow-[inset_0_1px_0_#fff,0_1px_2px_rgb(0_0_0/0.3)]"
+          />
+          {t('appName')}
+        </span>
         <div className="hidden min-w-0 sm:block">
           <FacilitySwitcher />
         </div>
@@ -145,7 +154,7 @@ export default function Layout() {
       <div className="flex flex-1">
         <nav
           aria-label="Main"
-          className={`no-print fixed inset-y-14 left-0 z-20 w-60 border-r border-slate-200 bg-white p-3 transition-transform lg:static lg:translate-x-0 ${menuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+          className={`no-print fixed inset-y-14 left-0 z-20 w-60 border-r border-slate-200 bg-gradient-to-b from-white to-slate-50 p-3 shadow-[inset_-1px_0_0_#fff] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] lg:static lg:translate-x-0 ${menuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}
         >
           <div className="mb-3 sm:hidden">
             <FacilitySwitcherMobile />
@@ -157,7 +166,7 @@ export default function Layout() {
                   to={n.to}
                   end={n.end}
                   className={({ isActive }) =>
-                    `flex min-h-10 items-center rounded-md px-3 text-sm font-medium ${isActive ? 'bg-brand-50 text-brand-800' : 'text-slate-700 hover:bg-slate-100'}`
+                    `nav-item flex min-h-10 items-center rounded-md px-3 text-sm font-medium ${isActive ? 'text-brand-800' : 'text-slate-700 hover:bg-white hover:shadow-[0_1px_2px_rgb(15_23_42/0.08)]'}`
                   }
                 >
                   {t(`nav.${n.key}`)}
@@ -167,10 +176,15 @@ export default function Layout() {
           </ul>
         </nav>
         {menuOpen && (
-          <div className="fixed inset-0 top-14 z-10 bg-slate-900/30 lg:hidden" onClick={() => setMenuOpen(false)} />
+          <div
+            className="fixed inset-0 top-14 z-10 animate-[az-page-in_200ms_ease-out_both] bg-slate-900/30 backdrop-blur-[1px] lg:hidden"
+            onClick={() => setMenuOpen(false)}
+          />
         )}
         <main id="main" className="min-w-0 flex-1 p-4 sm:p-6">
-          <Outlet />
+          <div key={location.pathname} className="page-in">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

@@ -30,11 +30,80 @@ export function Field({ label, error, hint, children, required }) {
   );
 }
 
-export function Spinner({ label = 'Loading…' }) {
+/** Ring of eight beads going round. Decorative; pair it with visible or screen-reader text. */
+export function DotRing({ size = '2.25rem', className = '' }) {
   return (
-    <div className="flex items-center gap-2 p-6 text-sm text-slate-600" role="status">
-      <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-brand-700" />
-      {label}
+    <span className={`dot-ring ${className}`} style={{ '--ring-size': size }} aria-hidden>
+      {Array.from({ length: 8 }, (_, i) => (
+        <i key={i} />
+      ))}
+    </span>
+  );
+}
+
+/** A single skeleton bone. Give it a size with className (e.g. "h-4 w-2/3"). */
+export function Skeleton({ className = 'h-4 w-full' }) {
+  return <span className={`skeleton block ${className}`} aria-hidden />;
+}
+
+const LINE_WIDTHS = ['w-11/12', 'w-4/5', 'w-2/3', 'w-5/6', 'w-3/4', 'w-1/2'];
+
+/** Loading state for a section: the dot ring with its label, over skeleton rows shaped like a list. */
+export function Spinner({ label = 'Loading…', rows = 3 }) {
+  return (
+    <div className="p-4" role="status" aria-live="polite">
+      <div className="mb-4 flex items-center gap-3 text-sm text-slate-600">
+        <DotRing size="1.75rem" />
+        <span>{label}</span>
+      </div>
+      <div className="space-y-3">
+        {Array.from({ length: rows }, (_, i) => (
+          <div key={i} className="flex items-center gap-3">
+            <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className={`h-3 ${LINE_WIDTHS[i % LINE_WIDTHS.length]}`} />
+              <Skeleton className={`h-3 ${LINE_WIDTHS[(i + 3) % LINE_WIDTHS.length]} opacity-70`} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Loading state for a whole page: header and panels as skeletons, with the dot ring in the middle. */
+export function PageSkeleton({ label = 'Loading…' }) {
+  return (
+    <div className="page-in relative" role="status" aria-live="polite">
+      <span className="sr-only">{label}</span>
+      <div className="mb-6 space-y-2">
+        <Skeleton className="h-6 w-56 max-w-full" />
+        <Skeleton className="h-3.5 w-80 max-w-full opacity-70" />
+      </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="card space-y-3 p-4 md:col-span-2">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex items-center gap-3">
+              <Skeleton className="h-9 w-9 shrink-0 rounded-full" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className={`h-3 ${LINE_WIDTHS[i]}`} />
+                <Skeleton className={`h-3 ${LINE_WIDTHS[(i + 2) % LINE_WIDTHS.length]} opacity-70`} />
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="card space-y-3 p-4">
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-3 w-3/4" />
+          <Skeleton className="h-3 w-1/2 opacity-70" />
+        </div>
+      </div>
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <span className="card flex items-center gap-3 rounded-full px-4 py-2 text-sm text-slate-700">
+          <DotRing size="1.75rem" />
+          {label}
+        </span>
+      </div>
     </div>
   );
 }
@@ -47,7 +116,10 @@ export function Alert({ kind = 'error', children }) {
     warn: 'border-amber-200 bg-amber-50 text-amber-900',
   };
   return (
-    <div className={`rounded-md border px-3 py-2 text-sm ${styles[kind]}`} role={kind === 'error' ? 'alert' : 'status'}>
+    <div
+      className={`pop-in rounded-md border px-3 py-2 text-sm shadow-[inset_0_1px_0_rgb(255_255_255/0.6),0_1px_2px_rgb(15_23_42/0.06)] ${styles[kind]}`}
+      role={kind === 'error' ? 'alert' : 'status'}
+    >
       {children}
     </div>
   );
@@ -109,7 +181,9 @@ export function Badge({ tone = 'slate', children }) {
     teal: 'bg-brand-100 text-brand-900',
   };
   return (
-    <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${tones[tone]}`}>
+    <span
+      className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium shadow-[inset_0_1px_0_rgb(255_255_255/0.6),0_0_0_1px_rgb(15_23_42/0.05)] ${tones[tone]}`}
+    >
       {children}
     </span>
   );

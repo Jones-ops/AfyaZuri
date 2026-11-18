@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api.js';
-import { ErrorMessage, PageHeader, Spinner } from '../components/ui.jsx';
+import { ErrorMessage, PageHeader, PageSkeleton } from '../components/ui.jsx';
 
 /** Permission matrix: permissions down the side, roles across, with a sticky first column. */
 export default function Roles() {
   const q = useQuery({ queryKey: ['roles'], queryFn: () => api.get('/roles') });
-  if (q.isPending) return <Spinner />;
+  if (q.isPending) return <PageSkeleton />;
   if (q.error) return <ErrorMessage error={q.error} />;
   const { data: roles, permissionGroups } = q.data;
   const sets = roles.map((r) => new Set(r.permissions));
