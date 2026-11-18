@@ -1,12 +1,40 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { formatKES } from '@afyazuri/shared';
 import { api, qs } from '../../api.js';
+import { Can } from '../../auth.jsx';
 import { InventoryNav, useStores } from '../../components/inventory/common.jsx';
 import { Badge, EmptyState, ErrorMessage, Field, PageHeader, Spinner } from '../../components/ui.jsx';
 
 const LABEL = { expired: 'Expired', 30: 'Within 30 days', 60: '31–60 days', 90: '61–90 days' };
 const TONE = { expired: 'red', 30: 'red', 60: 'amber', 90: 'amber' };
+
+function WriteOff({ b }) {
+  const qc = useQueryClient();
+  const m = useMutation({
+    mutationFn: () =>
+      api.post(
+        `/stores/${b.storeId}/expiry-writeoff`,
+        { batchId: b.batchId, reason: 'Expired; removed for destruction' },
+        { 'Idempotency-Key': `wo-${b.storeId}-${b.batchId}` },
+      ),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['expiry'] }),
+  });
+  return (
+    <Can perm="inventory.stocktake.perform">
+      <button
+        className="text-xs text-red-700 hover:underline"
+        disabled={m.isPending}
+        onClick={() =>
+          window.confirm(`Write off ${b.quantity} ${b.baseUnit} of ${b.item} (${b.batchNumber})?`) && m.mutate()
+        }
+      >
+        Write off
+      </button>
+      {m.error && <span className="block text-xs text-red-700">{m.error.message}</span>}
+    </Can>
+  );
+}
 
 /** Expiry dashboard: expired stock (quarantined) and what expires in the next 30/60/90 days. */
 export default function Expiry() {
@@ -73,6 +101,7 @@ export default function Expiry() {
                     <th>Expiry</th>
                     <th className="text-right">Quantity</th>
                     <th className="text-right">Value (KES)</th>
+                    <th />
                   </tr>
                 </thead>
                 <tbody>
@@ -88,6 +117,7 @@ export default function Expiry() {
                         {b.quantity} {b.baseUnit}
                       </td>
                       <td className="text-right tabular-nums">{formatKES(b.value, { currency: false })}</td>
+                      <td>{b.band === 'expired' && <WriteOff b={b} />}</td>
                     </tr>
                   ))}
                 </tbody>

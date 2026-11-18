@@ -9,9 +9,12 @@ const TABS = [
   ['/inventory', 'Stock on hand', 'inventory.read', true],
   ['/inventory/receive', 'Receive goods', 'inventory.receive'],
   ['/inventory/purchase-orders', 'Purchase orders', 'inventory.read'],
+  ['/inventory/requisitions', 'Requisitions', 'inventory.read'],
+  ['/inventory/stock-takes', 'Stock takes', 'inventory.read'],
   ['/inventory/items', 'Items', 'inventory.read'],
   ['/inventory/expiry', 'Expiry', 'inventory.read'],
   ['/inventory/movements', 'Ledger', 'inventory.read'],
+  ['/inventory/reports', 'Reports', 'reports.operational.read'],
 ];
 
 /** Tabs across the inventory pages. */

@@ -40,6 +40,9 @@ const PurchaseOrders = lazy(() => import('./pages/inventory/PurchaseOrders.jsx')
 const InventoryItems = lazy(() => import('./pages/inventory/Items.jsx'));
 const Expiry = lazy(() => import('./pages/inventory/Expiry.jsx'));
 const Movements = lazy(() => import('./pages/inventory/Movements.jsx'));
+const Requisitions = lazy(() => import('./pages/inventory/Requisitions.jsx'));
+const StockTakes = lazy(() => import('./pages/inventory/StockTakes.jsx'));
+const InventoryReports = lazy(() => import('./pages/inventory/InventoryReports.jsx'));
 
 const APPROVER = ['billing.waiver.approve', 'billing.refund.approve', 'billing.payment.receive'];
 
@@ -268,6 +271,30 @@ function App() {
             element={
               <Protected perm="inventory.read">
                 <Movements />
+              </Protected>
+            }
+          />
+          <Route
+            path="inventory/requisitions"
+            element={
+              <Protected perm="inventory.read">
+                <Requisitions />
+              </Protected>
+            }
+          />
+          <Route
+            path="inventory/stock-takes"
+            element={
+              <Protected perm="inventory.read">
+                <StockTakes />
+              </Protected>
+            }
+          />
+          <Route
+            path="inventory/reports"
+            element={
+              <Protected perm={['reports.operational.read', 'reports.financial.read']}>
+                <InventoryReports />
               </Protected>
             }
           />

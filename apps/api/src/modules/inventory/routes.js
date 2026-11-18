@@ -1,6 +1,17 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import {
+  consumptionQuery,
+  expiryWriteoffBody,
+  hasPermission,
+  requisitionBody,
+  requisitionDecisionBody,
+  requisitionReceiveBody,
+  requisitionsQuery,
+  stockCountBody,
+  stockTakeBody,
+  stockTakeDecisionBody,
+  valuationQuery,
   grnBody,
   idParams,
   itemBody,
@@ -15,10 +26,17 @@ import {
   supplierBody,
   supplierUpdateBody,
 } from '@afyazuri/shared';
+import { toCsv } from '../../lib/csv.js';
+import { forbidden } from '../../lib/errors.js';
 import { requestMeta as m, validate } from '../../lib/http.js';
+import { actorOf } from '../../middleware/auth.js';
+import { recordAudit } from '../audit/service.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { idempotent } from '../../middleware/idempotency.js';
 import * as po from './purchasing.js';
+import * as rep from './reports.js';
+import * as req_ from './requisitions.js';
+import * as st from './stocktakes.js';
 import * as inv from './service.js';
 
 const storeItemParams = z.object({ id: z.string().uuid(), itemId: z.string().uuid() });
@@ -116,5 +134,103 @@ export function inventoryRoutes(deps) {
   r.get('/stock-movements', read, validate({ query: movementsQuery }), async (req, res) =>
     res.json({ data: await inv.listMovements(deps, req.auth, req.valid.query) }),
   );
+  // Requisitions (department and approval checks are per store, in the service)
+  r.get('/requisitions', read, validate({ query: requisitionsQuery }), async (req, res) =>
+    res.json({ data: await req_.listRequisitions(deps, req.auth, req.valid.query) }),
+  );
+  r.get('/requisitions/:id', read, id, async (req, res) =>
+    res.json(await req_.getRequisition(deps, req.auth, req.valid.params.id)),
+  );
+  r.post(
+    '/requisitions',
+    requirePermission('inventory.requisition.create'),
+    idempotent(deps.db, { required: true }),
+    validate({ body: requisitionBody }),
+    async (req, res) => res.status(201).json(await req_.createRequisition(deps, req.auth, req.valid.body, m(req))),
+  );
+  r.post(
+    '/requisitions/:id/decision',
+    requirePermission('inventory.requisition.approve'),
+    validate({ params: idParams, body: requisitionDecisionBody }),
+    async (req, res) =>
+      res.json(await req_.decideRequisition(deps, req.auth, req.valid.params.id, req.valid.body, m(req))),
+  );
+  r.post('/requisitions/:id/issue', requirePermission('inventory.issue'), id, async (req, res) =>
+    res.json(await req_.issueRequisition(deps, req.auth, req.valid.params.id, m(req))),
+  );
+  r.post(
+    '/requisitions/:id/receive',
+    requirePermission('inventory.receive'),
+    validate({ params: idParams, body: requisitionReceiveBody }),
+    async (req, res) =>
+      res.json(await req_.receiveRequisition(deps, req.auth, req.valid.params.id, req.valid.body, m(req))),
+  );
+  r.post('/requisitions/:id/cancel', requirePermission('inventory.requisition.create'), id, async (req, res) =>
+    res.json(await req_.cancelRequisition(deps, req.auth, req.valid.params.id, m(req))),
+  );
+
+  // Stock takes and expiry write-offs
+  const count = requirePermission('inventory.stocktake.perform');
+  r.get('/stock-takes', read, async (req, res) => res.json({ data: await st.listStockTakes(deps, req.auth) }));
+  r.get('/stock-takes/:id', read, id, async (req, res) =>
+    res.json(await st.getStockTake(deps, req.auth, req.valid.params.id)),
+  );
+  r.post('/stock-takes', count, validate({ body: stockTakeBody }), async (req, res) =>
+    res.status(201).json(await st.startStockTake(deps, req.auth, req.valid.body, m(req))),
+  );
+  r.put('/stock-takes/:id/counts', count, validate({ params: idParams, body: stockCountBody }), async (req, res) =>
+    res.json(await st.recordCounts(deps, req.auth, req.valid.params.id, req.valid.body, m(req))),
+  );
+  r.post('/stock-takes/:id/submit', count, id, async (req, res) =>
+    res.json(await st.submitStockTake(deps, req.auth, req.valid.params.id, m(req))),
+  );
+  r.post('/stock-takes/:id/cancel', count, id, async (req, res) =>
+    res.json(await st.cancelStockTake(deps, req.auth, req.valid.params.id, m(req))),
+  );
+  r.post(
+    '/stock-takes/:id/decision',
+    requirePermission('inventory.stocktake.approve'),
+    validate({ params: idParams, body: stockTakeDecisionBody }),
+    async (req, res) => res.json(await st.decideStockTake(deps, req.auth, req.valid.params.id, req.valid.body, m(req))),
+  );
+  r.post(
+    '/stores/:id/expiry-writeoff',
+    count,
+    idempotent(deps.db, { required: true }),
+    validate({ params: idParams, body: expiryWriteoffBody }),
+    async (req, res) => res.json(await st.writeOffExpired(deps, req.auth, req.valid.params.id, req.valid.body, m(req))),
+  );
+
+  // Reports (CSV needs reports.export and is audited)
+  const reports = requirePermission(['reports.operational.read', 'reports.financial.read']);
+  const csv = async (req, res, name, [header, rows], entityType, metadata) => {
+    if (!hasPermission(req.auth.grants, 'reports.export', { facilityId: req.auth.facilityId }))
+      throw forbidden('You do not have permission to export reports', { required: ['reports.export'] });
+    await recordAudit(deps.db, actorOf(req), m(req), {
+      action: 'export',
+      entityType,
+      metadata: { ...metadata, rows: rows.length },
+    });
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${name}"`);
+    res.send(toCsv(header, rows));
+  };
+  r.get('/inventory/reports/consumption', reports, validate({ query: consumptionQuery }), async (req, res) => {
+    const q = req.valid.query;
+    const report = await rep.consumptionReport(deps, req.auth, q);
+    if (q.format !== 'csv') return res.json(report);
+    return csv(req, res, `consumption-${q.from}-to-${q.to}.csv`, rep.consumptionCsv(report), 'consumption_report', {
+      from: q.from,
+      to: q.to,
+    });
+  });
+  r.get('/inventory/reports/valuation', reports, validate({ query: valuationQuery }), async (req, res) => {
+    const q = req.valid.query;
+    const report = await rep.valuationReport(deps, req.auth, q);
+    if (q.format !== 'csv') return res.json(report);
+    return csv(req, res, `stock-valuation-${report.asOf}.csv`, rep.valuationCsv(report), 'valuation_report', {
+      asOf: report.asOf,
+    });
+  });
   return r;
 }

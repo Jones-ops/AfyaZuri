@@ -179,3 +179,79 @@ export const stockQuery = z.object({
   q: text(80).optional(),
   status: z.enum(['all', 'low', 'out', 'expiring']).default('all'),
 });
+
+// ---- Requisitions -------------------------------------------------------------------------
+
+const uniqueItems = (ls) => new Set(ls.map((l) => l.itemId)).size === ls.length;
+
+export const requisitionBody = z
+  .object({
+    fromStoreId: z.string().uuid(),
+    toStoreId: z.string().uuid(),
+    notes: text(500).optional().nullable(),
+    lines: z
+      .array(z.object({ itemId: z.string().uuid(), quantity }))
+      .min(1)
+      .max(100)
+      .refine(uniqueItems, 'Each item once per requisition'),
+  })
+  .refine((v) => v.fromStoreId !== v.toStoreId, { path: ['toStoreId'], message: 'Choose a different store' });
+
+/** The approver may cut quantities (never raise them); omitted lines keep the requested quantity. */
+export const requisitionDecisionBody = z.object({
+  approve: z.boolean(),
+  note: text(300).optional().nullable(),
+  lines: z
+    .array(z.object({ itemId: z.string().uuid(), approvedQty: count }))
+    .max(100)
+    .default([]),
+});
+
+export const requisitionReceiveBody = z.object({
+  lines: z
+    .array(
+      z.object({
+        issueLineId: z.string().uuid(),
+        receivedQty: count,
+        varianceReason: text(300).optional().nullable(),
+      }),
+    )
+    .min(1)
+    .max(500),
+});
+
+export const requisitionsQuery = z.object({
+  status: z.enum(['requested', 'approved', 'issued', 'received', 'rejected', 'cancelled']).optional(),
+  storeId: z.string().uuid().optional(),
+});
+
+// ---- Stock takes and write-offs ---------------------------------------------------------------
+
+export const stockTakeBody = z.object({ storeId: z.string().uuid(), notes: text(500).optional().nullable() });
+export const stockCountBody = z.object({
+  lines: z
+    .array(z.object({ lineId: z.string().uuid(), countedQty: count, reason: text(300).optional().nullable() }))
+    .min(1)
+    .max(2000),
+});
+export const stockTakeDecisionBody = z.object({ approve: z.boolean(), note: text(300).optional().nullable() });
+export const expiryWriteoffBody = z.object({ batchId: z.string().uuid(), reason: text(300).min(5) });
+
+// ---- Reports ----------------------------------------------------------------------------------
+
+export const consumptionQuery = z
+  .object({
+    from: ymd,
+    to: ymd,
+    storeId: z.string().uuid().optional(),
+    format: z.enum(['json', 'csv']).default('json'),
+  })
+  .refine((v) => v.from <= v.to, { path: ['to'], message: 'The end date is before the start date' })
+  .refine((v) => (Date.parse(v.to) - Date.parse(v.from)) / 86_400_000 <= 366, {
+    path: ['to'],
+    message: 'Choose at most one year',
+  });
+export const valuationQuery = z.object({
+  storeId: z.string().uuid().optional(),
+  format: z.enum(['json', 'csv']).default('json'),
+});
