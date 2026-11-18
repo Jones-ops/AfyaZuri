@@ -61,7 +61,7 @@ function Services() {
   return (
     <div className="space-y-4">
       <form
-        className="card grid gap-3 p-4 sm:grid-cols-[1fr,2fr,1fr,1fr,1fr,auto] sm:items-end"
+        className="card grid gap-3 p-4 sm:grid-cols-[1fr_2fr_1fr_1fr_1fr_auto] sm:items-end"
         onSubmit={(e) => {
           e.preventDefault();
           create.mutate();
@@ -150,7 +150,7 @@ function PriceLists() {
   const current = lists.data.data.find((l) => l.id === selected) ?? lists.data.data[0];
   if (!current) return <EmptyState title="No price lists yet" />;
   return (
-    <div className="grid gap-4 lg:grid-cols-[16rem,1fr]">
+    <div className="grid gap-4 lg:grid-cols-[16rem_1fr]">
       <ul className="card divide-y divide-slate-100" aria-label="Price lists">
         {lists.data.data.map((l) => (
           <li key={l.id}>
@@ -246,7 +246,7 @@ function PriceListItems({ list }) {
         </table>
       )}
       <form
-        className="grid gap-2 sm:grid-cols-[2fr,1fr,1.5fr,1fr,auto] sm:items-end"
+        className="grid gap-2 sm:grid-cols-[2fr_1fr_1.5fr_1fr_auto] sm:items-end"
         onSubmit={(e) => {
           e.preventDefault();
           save.mutate();

@@ -33,6 +33,13 @@ const WORK = [
     icon: 'M7 3h10v18l-2.5-2-2.5 2-2.5-2L7 21zM10 8h4M10 12h4',
   },
   {
+    to: '/inventory',
+    perm: 'inventory.read',
+    title: 'Stock',
+    body: 'Stock on hand, deliveries, expiry and reorders.',
+    icon: 'M3 7l9-4 9 4-9 4-9-4zM3 7v10l9 4 9-4V7M12 11v10',
+  },
+  {
     to: '/reports/finance',
     perm: 'reports.financial.read',
     title: 'Finance reports',

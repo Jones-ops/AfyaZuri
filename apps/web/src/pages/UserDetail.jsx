@@ -50,7 +50,7 @@ export default function UserDetail() {
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="card p-4">
           <h2 className="mb-3 font-semibold">Account</h2>
-          <dl className="grid grid-cols-[auto,1fr] gap-x-4 gap-y-2 text-sm">
+          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
             <dt className="text-slate-600">Status</dt>
             <dd>
               {u.status === 'disabled' ? (
@@ -162,7 +162,7 @@ export default function UserDetail() {
             ))}
           </ul>
           <Can perm="users.manage">
-            <div className="mt-4 grid gap-2 sm:grid-cols-[1fr,1fr,auto] sm:items-end">
+            <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
               <Field label="Role">
                 <select
                   className="input"

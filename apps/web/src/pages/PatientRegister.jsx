@@ -107,7 +107,7 @@ export default function PatientRegister() {
                 </li>
               ))}
             </ul>
-            <div className="mt-4 grid gap-2 sm:grid-cols-[1fr,auto] sm:items-end">
+            <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
               <Field
                 label="Reason for creating a new record anyway"
                 hint="e.g. different person — confirmed with ID card"

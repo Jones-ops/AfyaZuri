@@ -189,7 +189,7 @@ function AddCharge({ billId, onDone }) {
   });
   return (
     <form
-      className="mt-3 grid gap-2 sm:grid-cols-[2fr,auto,auto,2fr,auto] sm:items-end"
+      className="mt-3 grid gap-2 sm:grid-cols-[2fr_auto_auto_2fr_auto] sm:items-end"
       onSubmit={(e) => {
         e.preventDefault();
         add.mutate();

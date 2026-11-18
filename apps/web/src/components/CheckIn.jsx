@@ -108,7 +108,7 @@ export default function CheckIn({ patient: p }) {
       ) : (
         <Can perm="opd.checkin" fallback={<p className="text-sm text-slate-600">No open visit.</p>}>
           <form
-            className="grid gap-3 sm:grid-cols-[auto,1fr,auto,auto] sm:items-end"
+            className="grid gap-3 sm:grid-cols-[auto_1fr_auto_auto] sm:items-end"
             onSubmit={(e) => {
               e.preventDefault();
               m.mutate();

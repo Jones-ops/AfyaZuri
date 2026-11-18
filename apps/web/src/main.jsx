@@ -34,6 +34,12 @@ const Cashier = lazy(() => import('./pages/Cashier.jsx'));
 const Receipt = lazy(() => import('./pages/Receipt.jsx'));
 const Approvals = lazy(() => import('./pages/Approvals.jsx'));
 const FinanceReports = lazy(() => import('./pages/FinanceReports.jsx'));
+const Stock = lazy(() => import('./pages/inventory/Stock.jsx'));
+const ReceiveGoods = lazy(() => import('./pages/inventory/Receive.jsx'));
+const PurchaseOrders = lazy(() => import('./pages/inventory/PurchaseOrders.jsx'));
+const InventoryItems = lazy(() => import('./pages/inventory/Items.jsx'));
+const Expiry = lazy(() => import('./pages/inventory/Expiry.jsx'));
+const Movements = lazy(() => import('./pages/inventory/Movements.jsx'));
 
 const APPROVER = ['billing.waiver.approve', 'billing.refund.approve', 'billing.payment.receive'];
 
@@ -214,6 +220,54 @@ function App() {
             element={
               <Protected perm="billing.read">
                 <Receipt />
+              </Protected>
+            }
+          />
+          <Route
+            path="inventory"
+            element={
+              <Protected perm="inventory.read">
+                <Stock />
+              </Protected>
+            }
+          />
+          <Route
+            path="inventory/receive"
+            element={
+              <Protected perm="inventory.receive">
+                <ReceiveGoods />
+              </Protected>
+            }
+          />
+          <Route
+            path="inventory/purchase-orders"
+            element={
+              <Protected perm="inventory.read">
+                <PurchaseOrders />
+              </Protected>
+            }
+          />
+          <Route
+            path="inventory/items"
+            element={
+              <Protected perm="inventory.read">
+                <InventoryItems />
+              </Protected>
+            }
+          />
+          <Route
+            path="inventory/expiry"
+            element={
+              <Protected perm="inventory.read">
+                <Expiry />
+              </Protected>
+            }
+          />
+          <Route
+            path="inventory/movements"
+            element={
+              <Protected perm="inventory.read">
+                <Movements />
               </Protected>
             }
           />

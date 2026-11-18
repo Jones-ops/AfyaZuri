@@ -169,7 +169,7 @@ function Departments() {
     <div className="space-y-4">
       <Can perm="facilities.manage">
         <form
-          className="card grid gap-3 p-4 sm:grid-cols-[2fr,1fr,1fr,auto] sm:items-end"
+          className="card grid gap-3 p-4 sm:grid-cols-[2fr_1fr_1fr_auto] sm:items-end"
           onSubmit={form.handleSubmit((v) => create.mutate(v, { onSuccess: () => form.reset({ type: 'opd' }) }))}
         >
           <Field label="Name">
@@ -211,7 +211,7 @@ function ServicePoints() {
     <div className="space-y-4">
       <Can perm="facilities.manage">
         <form
-          className="card grid gap-3 p-4 sm:grid-cols-[2fr,1fr,1fr,auto] sm:items-end"
+          className="card grid gap-3 p-4 sm:grid-cols-[2fr_1fr_1fr_auto] sm:items-end"
           onSubmit={form.handleSubmit((v) =>
             create.mutate(v, { onSuccess: () => form.reset({ type: 'consultation' }) }),
           )}
@@ -260,7 +260,7 @@ function Wards() {
     <div className="space-y-4">
       <Can perm="facilities.manage">
         <form
-          className="card grid gap-3 p-4 sm:grid-cols-[2fr,1fr,1fr,1fr,auto] sm:items-end"
+          className="card grid gap-3 p-4 sm:grid-cols-[2fr_1fr_1fr_1fr_auto] sm:items-end"
           onSubmit={form.handleSubmit((v) => create.mutate(v, { onSuccess: () => form.reset({ gender: 'mixed' }) }))}
         >
           <Field label="Ward name">

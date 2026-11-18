@@ -20,7 +20,7 @@ export default function Cashier() {
         title="Cashier desk"
         description="Open your shift, take payments from the cashier queue, and close the shift with your count."
       />
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr),20rem]">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
         {shift.isPending ? <Spinner /> : shift.data.shift ? <OpenShift shift={shift.data.shift} /> : <StartShift />}
         <aside className="space-y-3">
           {cashierQueues.map((q) => (
@@ -148,7 +148,7 @@ function OpenShift({ shift }) {
             })}
           </tbody>
         </table>
-        <div className="mt-3 grid gap-2 sm:grid-cols-[1fr,auto] sm:items-end">
+        <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
           <Field label="Notes (explain any difference)">
             <input className="input" value={notes} onChange={(e) => setNotes(e.target.value)} />
           </Field>

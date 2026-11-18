@@ -64,7 +64,7 @@ export default function PatientChart() {
             : 'Your role does not include access to clinical records.'}
         </Alert>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,22rem),1fr]">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,22rem)_1fr]">
           <div className="space-y-4">
             <Allergies patientId={id} allergies={summary.data?.allergies ?? []} onChange={refresh} />
             <Problems patientId={id} problems={summary.data?.problems ?? []} onChange={refresh} />
@@ -154,7 +154,7 @@ function TimelineItem({ e }) {
   else body = <span>{d.description}</span>;
 
   return (
-    <li className="grid grid-cols-[6.5rem,1fr] gap-3 text-sm">
+    <li className="grid grid-cols-[6.5rem_1fr] gap-3 text-sm">
       <div>
         <Badge>{KIND_LABEL[e.kind]}</Badge>
         <div className="mt-1 text-xs text-slate-600">{formatDateTime(e.at)}</div>

@@ -111,7 +111,7 @@ function Row({ label, children }) {
 function Details({ patient: p }) {
   return (
     <section className="card p-4">
-      <dl className="grid grid-cols-[minmax(8rem,auto),1fr] gap-x-4 gap-y-2 text-sm sm:grid-cols-[auto,1fr,auto,1fr]">
+      <dl className="grid grid-cols-[minmax(8rem,auto)_1fr] gap-x-4 gap-y-2 text-sm sm:grid-cols-[auto_1fr_auto_1fr]">
         <Row label="Date of birth">
           {p.dateOfBirth} {p.dobEstimated && <Badge>estimated</Badge>}
         </Row>
@@ -207,7 +207,7 @@ function Payers({ patient: p }) {
       )}
       <Can perm="patients.update">
         <form
-          className="mt-3 grid gap-2 sm:grid-cols-[1fr,1fr,auto] sm:items-end"
+          className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
           onSubmit={(e) => {
             e.preventDefault();
             add.mutate();

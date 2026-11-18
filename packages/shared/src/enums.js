@@ -111,3 +111,34 @@ export const CHARGE_CATEGORIES = [
 ];
 export const PAYMENT_METHODS = ['cash', 'mpesa', 'card', 'bank'];
 export const COVER_TYPES = ['none', 'full', 'fixed', 'percent'];
+
+// ---- Inventory and pharmacy ----------------------------------------------------------
+export const STORE_TYPES = ['main', 'pharmacy', 'lab', 'ward', 'theatre', 'other'];
+export const INVENTORY_CATEGORIES = ['drug', 'consumable', 'reagent', 'other'];
+export const DRUG_FORMS = [
+  'tablet',
+  'capsule',
+  'syrup',
+  'suspension',
+  'injection',
+  'infusion',
+  'cream',
+  'ointment',
+  'drops',
+  'inhaler',
+  'suppository',
+  'powder',
+  'other',
+];
+/** Signed ledger entries: receipts and returns add stock, everything else takes it away. */
+export const MOVEMENT_TYPES = [
+  'grn',
+  'issue_out',
+  'issue_in',
+  'dispense',
+  'dispense_return',
+  'otc_sale',
+  'adjustment',
+  'stocktake',
+  'expiry_writeoff',
+];

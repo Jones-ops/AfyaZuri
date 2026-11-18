@@ -69,7 +69,7 @@ export default function DiagnosesPanel({ encounterId, diagnoses, onChange }) {
         </ul>
       )}
       <Can perm="emr.diagnoses.write">
-        <div className="grid gap-2 sm:grid-cols-[1fr,auto,auto]">
+        <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
           <label>
             <span className="label">Search ICD-11 (name or code)</span>
             <input

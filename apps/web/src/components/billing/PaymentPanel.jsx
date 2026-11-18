@@ -135,7 +135,7 @@ function DeskForm({ bill, method, onDone }) {
   }
   return (
     <form
-      className="grid gap-3 sm:grid-cols-[1fr,1fr,auto] sm:items-end"
+      className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
       onSubmit={(e) => {
         e.preventDefault();
         m.mutate();
@@ -224,7 +224,7 @@ function MpesaForm({ bill, onDone }) {
     );
   return (
     <form
-      className="grid gap-3 sm:grid-cols-[1fr,1fr,auto] sm:items-end"
+      className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
       onSubmit={(e) => {
         e.preventDefault();
         start.mutate();

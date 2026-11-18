@@ -221,7 +221,7 @@ function RequestForm({ bill }) {
         ))}
       </div>
       <p className="mb-2 text-xs text-slate-600">{hint}</p>
-      <div className="grid gap-2 sm:grid-cols-[auto,1fr,2fr,auto] sm:items-end">
+      <div className="grid gap-2 sm:grid-cols-[auto_1fr_2fr_auto] sm:items-end">
         {kind === 'refund' && (
           <Field label="From payment">
             <select className="input" value={paymentId} onChange={(e) => setPaymentId(e.target.value)} required>

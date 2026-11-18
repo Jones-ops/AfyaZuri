@@ -28,9 +28,11 @@ export function billingRoutes(deps) {
   const id = validate({ params: idParams });
   const manage = requirePermission('billing.pricelist.manage');
   const read = requirePermission(['billing.read', 'billing.pricelist.manage']);
+  // Item managers read the catalogue (names and codes only) to link stock items to what the patient is billed.
+  const readCatalogue = requirePermission(['billing.read', 'billing.pricelist.manage', 'inventory.items.manage']);
 
   // Catalogue and price lists
-  r.get('/charge-items', read, validate({ query: catalogueQuery }), async (req, res) =>
+  r.get('/charge-items', readCatalogue, validate({ query: catalogueQuery }), async (req, res) =>
     res.json({
       data: await svc.listChargeItems(deps, req.auth, {
         q: req.valid.query.q,
