@@ -9,24 +9,25 @@ export const PHOTOS = {
     src: '/images/ward-nurse.webp',
     srcSet: '/images/ward-nurse-sm.webp 480w, /images/ward-nurse.webp 960w',
     width: 960,
-    height: 1117,
-    alt: "A nurse reads a patient's notes on the paediatric ward at Lodwar District Hospital, Turkana",
-    lqip: 'data:image/webp;base64,UklGRtAAAABXRUJQVlA4IMQAAADQBQCdASoYABwAPu1sq1GppaOiqAqpMB2JbACdINHJ/gHmAuC4ygl9GZA5vRAfNP+Ktna9EYWgANu48HAf/o3gSXWM5XEQw9CG4wTkiujU/LJ/xDUgd1KP1hlrOlQgLzqbzVYKo5Sd+hWEjOYFfR197LWuvbwCDoLG6ggZiu/W5i/p8Wsq24XZizPQlhvGH28wfis/tMbEnFDg7TI+myXWUXVubuzwoLL6sOQc9bF7r0ie6FfMpHFU2Kdt2u0rnbURdAAA',
+    height: 1039,
+    alt: "A nurse reads a patient's notes on a hospital ward",
+    lqip: 'data:image/webp;base64,UklGRsoAAABXRUJQVlA4IL4AAACwBQCdASoYABoAPu1ur1IppiQiqAgBMB2JagCdMySuun/AKT174bxnRRszt+Qy3lF588SHJrwA27jwwMWVJGvFb3WeFxBRzAR9eA2DFaeProWEFwj0YwrjNeiKRlpU0h9pEs9tckYIYFg5ZUDWPVVk1GOUwao/PKc7APYAoJYSBcygrPiE5HNr6fpOUhuhvdmCePxRLmHXq4LM348pz9H6rjOxhcg56oyvimVZewpqvrlod5NVXZlLPgf4eXAA',
     credit: 'Marisol Grandon / UK Department for International Development',
     license: 'CC BY 2.0',
     source:
       'https://commons.wikimedia.org/wiki/File:Getting_treatment_for_malnutrition_in_northern_Kenya_(6220164120).jpg',
   },
-  lodwarDoctor: {
-    src: '/images/lodwar-doctor.webp',
-    srcSet: '/images/lodwar-doctor-sm.webp 800w, /images/lodwar-doctor.webp 1600w',
+  maternityMidwife: {
+    src: '/images/maternity-midwife.webp',
+    srcSet: '/images/maternity-midwife-sm.webp 800w, /images/maternity-midwife.webp 1600w',
     width: 1600,
-    height: 550,
-    alt: 'The acting medical superintendent of Lodwar District Hospital in the hospital courtyard',
-    lqip: 'data:image/webp;base64,UklGRmoAAABXRUJQVlA4IF4AAAAQBACdASoYAAgAPu1iqU2ppaOiMAgBMB2JZgCdMoADTsPTHClXLlCwJAD+zuBZJ1NnSmp110EDzymFJE1LUL++1hsBNJsLOvsXc/NTFijpDr9mbnCjwf7x63vC8AAA',
-    credit: 'Marisol Grandon / UK Department for International Development',
-    license: 'CC BY 2.0',
-    source: 'https://commons.wikimedia.org/wiki/File:On_the_road_to_recovery_in_Lodwar_hospital_(6220162256).jpg',
+    height: 500,
+    alt: 'A midwife in a surgical cap and mask on a hospital maternity ward',
+    lqip: 'data:image/webp;base64,UklGRm4AAABXRUJQVlA4IGIAAAAwBACdASoYAAgAPu1kqU2ppaQiMAgBMB2JQBOgBH9bTiQz0x5FcoV48AAA/p8MjJL67PT35yAtuh5qItmy1QzCGPikjausY6/9v5U8t38ZoxkXN+Lsok/y70OLCRzwTNHcAA==',
+    credit: '1st Lt. Katherine Sibilla, U.S. Army',
+    license: 'Public domain',
+    source:
+      'https://commons.wikimedia.org/wiki/File:US,_Ghana_midwives_team_up_in_maternity_ward_at_African_Lion_2025_(9047756).jpg',
   },
 };
 

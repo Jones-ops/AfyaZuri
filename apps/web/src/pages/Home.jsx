@@ -98,11 +98,11 @@ export default function Home() {
   const { me, can } = useAuth();
   const work = WORK.filter((l) => can(l.perm));
   const admin = ADMIN.filter((l) => can(l.perm));
-  const photo = PHOTOS.lodwarDoctor;
+  const photo = PHOTOS.maternityMidwife;
   return (
     <>
       <section className="relative mb-6 flex min-h-44 overflow-hidden rounded-xl border border-brand-900/30 bg-brand-900 shadow-[0_2px_4px_rgb(15_23_42/0.1),0_18px_36px_-18px_rgb(15_23_42/0.55)] sm:min-h-52">
-        <Photo photo={photo} sizes="(min-width: 1024px) 70vw, 100vw" position="30% 30%" priority />
+        <Photo photo={photo} sizes="(min-width: 1024px) 70vw, 100vw" position="70% 80%" priority />
         <div
           className="absolute inset-0 bg-gradient-to-r from-brand-900/90 via-brand-900/55 to-transparent"
           aria-hidden
