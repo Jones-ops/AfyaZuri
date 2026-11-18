@@ -32,6 +32,13 @@ const WORK = [
     body: 'Visit bills, balances and receipts.',
     icon: 'M7 3h10v18l-2.5-2-2.5 2-2.5-2L7 21zM10 8h4M10 12h4',
   },
+  {
+    to: '/reports/finance',
+    perm: 'reports.financial.read',
+    title: 'Finance reports',
+    body: 'Daily revenue, collections and debtor ageing.',
+    icon: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
+  },
 ];
 const ADMIN = [
   {

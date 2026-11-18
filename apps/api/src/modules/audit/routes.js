@@ -3,6 +3,7 @@ import { auditQuery, hasGlobalPermission } from '@afyazuri/shared';
 import { decodeCursor, page, requestMeta, validate } from '../../lib/http.js';
 import { actorOf, requirePermission } from '../../middleware/auth.js';
 import { recordAudit } from './service.js';
+import { csvCell } from '../../lib/csv.js';
 
 /**
  * Filtered audit query. Facility-scoped admins see their facility's entries;
@@ -43,13 +44,6 @@ const out = (r) => ({
   metadata: r.metadata,
   requestId: r.request_id,
 });
-
-const csvCell = (v) => {
-  if (v === null || v === undefined) return '';
-  let s = typeof v === 'object' ? JSON.stringify(v) : String(v);
-  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`; // neutralise spreadsheet formula injection
-  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
 
 /** @param {import('../../app.js').Deps} deps */
 export function auditRoutes(deps) {

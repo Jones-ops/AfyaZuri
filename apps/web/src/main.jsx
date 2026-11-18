@@ -33,6 +33,7 @@ const BillingSetup = lazy(() => import('./pages/BillingSetup.jsx'));
 const Cashier = lazy(() => import('./pages/Cashier.jsx'));
 const Receipt = lazy(() => import('./pages/Receipt.jsx'));
 const Approvals = lazy(() => import('./pages/Approvals.jsx'));
+const FinanceReports = lazy(() => import('./pages/FinanceReports.jsx'));
 
 const APPROVER = ['billing.waiver.approve', 'billing.refund.approve', 'billing.payment.receive'];
 
@@ -213,6 +214,14 @@ function App() {
             element={
               <Protected perm="billing.read">
                 <Receipt />
+              </Protected>
+            }
+          />
+          <Route
+            path="reports/finance"
+            element={
+              <Protected perm="reports.financial.read">
+                <FinanceReports />
               </Protected>
             }
           />

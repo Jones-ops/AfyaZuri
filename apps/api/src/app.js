@@ -25,6 +25,7 @@ import { registerSubscribers } from './modules/notifications/subscribers.js';
 import { emrRoutes } from './modules/emr/routes.js';
 import { opdRoutes } from './modules/opd/routes.js';
 import { patientRoutes } from './modules/patients/routes.js';
+import { reportRoutes } from './modules/reports/routes.js';
 import { userRoutes } from './modules/users/routes.js';
 
 /**
@@ -128,6 +129,7 @@ export function createApp(deps) {
   api.use(billingRoutes(deps));
   api.use(paymentRoutes(deps));
   api.use(adjustmentRoutes(deps));
+  api.use(reportRoutes(deps));
   api.use((req) => {
     throw new AppError(404, 'NOT_FOUND', `No route for ${req.method} ${safeUrl(req.originalUrl)}`);
   });

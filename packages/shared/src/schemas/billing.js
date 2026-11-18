@@ -154,8 +154,36 @@ export const payRefundBody = z.object({
   reference: z.string().trim().max(60).optional().nullable(),
 });
 
-export const reportRangeQuery = z.object({
-  from: z.coerce.date(),
-  to: z.coerce.date(),
+// ---- Financial reports ---------------------------------------------------------------
+
+/** A calendar day in Nairobi, YYYY-MM-DD. */
+const day = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD')
+  .refine(
+    (v) => !Number.isNaN(Date.parse(`${v}T00:00:00Z`)) && new Date(`${v}T00:00:00Z`).toISOString().startsWith(v),
+    'Not a real date',
+  );
+
+export const REVENUE_TABLES = ['days', 'departments', 'payers', 'methods', 'cashiers'];
+
+export const revenueQuery = z
+  .object({
+    from: day,
+    to: day,
+    format: z.enum(['json', 'csv']).default('json'),
+    /** Which table a CSV download contains. */
+    table: z.enum(/** @type {[string, ...string[]]} */ (REVENUE_TABLES)).default('days'),
+  })
+  .refine((v) => v.from <= v.to, { path: ['to'], message: 'The end date is before the start date' })
+  .refine((v) => (Date.parse(v.to) - Date.parse(v.from)) / 86_400_000 <= 366, {
+    path: ['to'],
+    message: 'Choose at most one year',
+  });
+
+export const AGEING_BUCKETS = ['0-30', '31-60', '61-90', '90+'];
+
+export const debtorsQuery = z.object({
   format: z.enum(['json', 'csv']).default('json'),
+  bucket: z.enum(/** @type {[string, ...string[]]} */ (AGEING_BUCKETS)).optional(),
 });

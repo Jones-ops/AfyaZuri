@@ -77,8 +77,22 @@ export async function ensureDatabase(pg, name) {
   const client = pg.getPgClient();
   await client.connect();
   try {
-    const { rowCount } = await client.query('SELECT 1 FROM pg_database WHERE datname = $1', [name]);
-    if (rowCount) return false;
+    const { rows } = await client.query(
+      'SELECT pg_encoding_to_char(encoding) AS enc FROM pg_database WHERE datname = $1',
+      [name],
+    );
+    if (rows.length && rows[0].enc === 'UTF8') return false;
+    if (rows.length) {
+      // A database from before the UTF-8 fix (WIN1252 on Windows). Keep it, renamed, and start a
+      // fresh UTF-8 one: nothing is deleted, and the new one is migrated and seeded as usual.
+      const kept = `${name}_${rows[0].enc.toLowerCase()}_${Date.now()}`;
+      await client.query(
+        'SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1 AND pid <> pg_backend_pid()',
+        [name],
+      );
+      await client.query(`ALTER DATABASE ${client.escapeIdentifier(name)} RENAME TO ${client.escapeIdentifier(kept)}`);
+      console.log(`Database ${name} was ${rows[0].enc}; kept it as ${kept} and created a new UTF-8 ${name}.`);
+    }
     await client.query(
       `CREATE DATABASE ${client.escapeIdentifier(name)} ENCODING 'UTF8' TEMPLATE template0 LC_COLLATE 'C' LC_CTYPE 'C'`,
     );
