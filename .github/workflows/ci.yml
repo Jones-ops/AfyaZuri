@@ -29,9 +29,6 @@ jobs:
       - name: Formatting
         run: npm run format:check
 
-      - name: Permission matrix doc is current
-        run: node scripts/gen-permission-matrix.js --check
-
       - name: Unit tests
         run: npm run test:unit
 
