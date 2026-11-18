@@ -22,8 +22,11 @@ const pg = await startPostgres({
 process.env.DATABASE_URL ??= pg.url;
 await migrateAndSeed(process.env.DATABASE_URL, { demo: true });
 
-const mocks = (process.env.MPESA_ENV ?? 'mock') === 'mock' ? await startMocks() : null;
-if (mocks) process.env.MPESA_BASE_URL ??= mocks.url;
+const mockMpesa = (process.env.MPESA_ENV ?? 'mock') === 'mock';
+const mockSms = (process.env.SMS_ENV ?? 'mock') === 'mock';
+const mocks = mockMpesa || mockSms ? await startMocks() : null;
+if (mocks && mockMpesa) process.env.MPESA_BASE_URL ??= mocks.url;
+if (mocks && mockSms) process.env.SMS_BASE_URL ??= mocks.url;
 
 const children = [
   spawn(process.execPath, ['--watch', 'src/server.js'], {

@@ -16,8 +16,12 @@ import { authRoutes } from './modules/auth/routes.js';
 import { facilityRoutes } from './modules/facilities/routes.js';
 import { Metrics, healthRoutes } from './modules/health/routes.js';
 import { mpesaCallbackRoutes, paymentRoutes } from './modules/billing/payment-routes.js';
+import { adjustmentRoutes } from './modules/billing/adjustment-routes.js';
 import { billingRoutes } from './modules/billing/routes.js';
+import { etimsFromConfig } from './integrations/etims.js';
 import { DarajaAdapter } from './integrations/mpesa.js';
+import { AfricasTalkingAdapter } from './integrations/sms.js';
+import { registerSubscribers } from './modules/notifications/subscribers.js';
 import { emrRoutes } from './modules/emr/routes.js';
 import { opdRoutes } from './modules/opd/routes.js';
 import { patientRoutes } from './modules/patients/routes.js';
@@ -31,6 +35,8 @@ import { userRoutes } from './modules/users/routes.js';
  * @property {import('./lib/crypto.js').FieldCrypto} crypto
  * @property {import('./lib/events.js').EventBus} bus
  * @property {DarajaAdapter} [mpesa] M-Pesa adapter (defaults to one built from config)
+ * @property {import('./integrations/etims.js').EtimsAdapter} [etims] KRA eTIMS adapter (mock by default)
+ * @property {AfricasTalkingAdapter} [sms] SMS adapter (defaults to one built from config)
  */
 
 /**
@@ -41,6 +47,9 @@ import { userRoutes } from './modules/users/routes.js';
 export function createApp(deps) {
   const { config, logger } = deps;
   deps.mpesa ??= new DarajaAdapter(config);
+  deps.etims ??= etimsFromConfig(config);
+  deps.sms ??= new AfricasTalkingAdapter(config);
+  registerSubscribers(deps);
   const app = express();
   const metrics = new Metrics();
 
@@ -118,6 +127,7 @@ export function createApp(deps) {
   api.use(emrRoutes(deps));
   api.use(billingRoutes(deps));
   api.use(paymentRoutes(deps));
+  api.use(adjustmentRoutes(deps));
   api.use((req) => {
     throw new AppError(404, 'NOT_FOUND', `No route for ${req.method} ${safeUrl(req.originalUrl)}`);
   });

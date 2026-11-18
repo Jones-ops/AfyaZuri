@@ -19,3 +19,4 @@ deploy/backup/data/
 /certs/
 *.partial
 *.azb
+/docs/

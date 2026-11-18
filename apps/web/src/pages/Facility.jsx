@@ -94,6 +94,7 @@ function NewFacility() {
         countyCode: v.countyCode || null,
         phone: v.phone || null,
         email: v.email || null,
+        kraPin: v.kraPin || null,
       });
       await api.post('/auth/switch-facility', { facilityId: f.id });
       return f;
@@ -114,6 +115,9 @@ function NewFacility() {
       </Field>
       <Field label="KMHFL code" required hint="4–6 digits from the Kenya Master Health Facility List">
         <input className="input" inputMode="numeric" {...r('kmhflCode', { required: true })} />
+      </Field>
+      <Field label="KRA PIN" hint="For eTIMS invoices, e.g. P051234567X">
+        <input className="input uppercase" {...r('kraPin')} />
       </Field>
       <Field label="Level">
         <select className="input" {...r('level')}>

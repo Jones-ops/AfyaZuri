@@ -2,12 +2,12 @@ import { copyFile, mkdir } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import PgBoss from 'pg-boss';
 import { reconcilePendingStk } from './modules/billing/payments.js';
+import { reconcileEtims } from './modules/notifications/etims.js';
 import { createBackup, pruneBackups, verifyBackup } from './ops/backup.js';
 
 /**
  * Background work.
  * - pg-boss runs scheduled jobs (Postgres-backed; no Redis needed on-prem).
- * - The outbox dispatcher polls every second for low-latency event delivery.
  * @param {import('./app.js').Deps} deps
  */
 export async function startJobs(deps) {
@@ -64,6 +64,12 @@ export async function startJobs(deps) {
     if (n) logger.info({ queried: n }, 'mpesa.reconcile');
   };
 
+  // Report receipts and credit notes the outbox gave up on (e.g. KRA unreachable for hours).
+  jobs['etims.reconcile'] = async () => {
+    const n = await reconcileEtims(deps);
+    if (n) logger.info({ tried: n }, 'etims.reconcile');
+  };
+
   for (const [name, handler] of Object.entries(jobs)) {
     await boss.createQueue(name);
     await boss.work(name, handler);
@@ -73,24 +79,45 @@ export async function startJobs(deps) {
   if (backupsOn) await boss.schedule('backup.nightly', config.BACKUP_CRON, {}, { tz: 'Africa/Nairobi' });
   else await boss.unschedule('backup.nightly').catch(() => {});
   await boss.schedule('mpesa.reconcile', '* * * * *', {}, { tz: 'Africa/Nairobi' });
+  await boss.schedule('etims.reconcile', '*/10 * * * *', {}, { tz: 'Africa/Nairobi' });
 
+  return async () => {
+    await boss.stop({ graceful: true, timeout: 10_000 });
+  };
+}
+
+/**
+ * Deliver outbox events (eTIMS submissions, SMS, …) to their subscribers. Polls every
+ * second when idle. Runs whether or not the scheduled jobs are enabled.
+ * @param {import('./app.js').Deps} deps
+ * @returns {() => Promise<void>} stop
+ */
+export function startOutbox({ db, logger, bus }) {
   let stopped = false;
+  let wake = null;
+  const sleep = (ms) =>
+    new Promise((r) => {
+      const t = setTimeout(r, ms);
+      wake = () => {
+        clearTimeout(t);
+        r();
+      };
+    });
   const loop = async () => {
     while (!stopped) {
       try {
         const n = await bus.dispatchPending(db);
-        if (n === 0) await new Promise((r) => setTimeout(r, 1000));
+        if (n === 0) await sleep(1000);
       } catch (err) {
         logger.error({ err }, 'outbox dispatch failed');
-        await new Promise((r) => setTimeout(r, 5000));
+        await sleep(5000);
       }
     }
   };
-  const loopDone = loop();
-
+  const done = loop();
   return async () => {
     stopped = true;
-    await loopDone;
-    await boss.stop({ graceful: true, timeout: 10_000 });
+    wake?.();
+    await done;
   };
 }

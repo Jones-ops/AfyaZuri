@@ -74,6 +74,8 @@ export const AUDIT_ACTIONS = [
   'unmerge',
   'sign',
   'amend',
+  'approve',
+  'reject',
 ];
 
 export const PAYER_TYPES = ['cash', 'sha', 'private_insurer', 'corporate', 'waiver'];

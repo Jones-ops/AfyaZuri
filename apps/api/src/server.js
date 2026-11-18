@@ -7,7 +7,7 @@ import { loadConfig } from './config.js';
 import { FieldCrypto } from './lib/crypto.js';
 import { EventBus } from './lib/events.js';
 import { createLogger } from './lib/logger.js';
-import { startJobs } from './jobs.js';
+import { startJobs, startOutbox } from './jobs.js';
 
 // Load the repository-root .env when present (real environment variables win).
 const envFile = fileURLToPath(new URL('../../../.env', import.meta.url));
@@ -30,6 +30,7 @@ const server = (tls ? createHttps(tls, app) : app).listen(config.PORT, () =>
     'Afyazuri API listening',
   ),
 );
+const stopOutbox = startOutbox(deps);
 const stopJobs = config.JOBS_ENABLED ? await startJobs(deps) : async () => {};
 
 let shuttingDown = false;
@@ -39,6 +40,7 @@ async function shutdown(signal) {
   logger.info({ signal }, 'shutting down');
   server.close();
   await stopJobs();
+  await stopOutbox();
   await db.destroy();
   process.exit(0);
 }

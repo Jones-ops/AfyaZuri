@@ -65,7 +65,14 @@ export default function Receipt() {
         <hr className="my-1 border-dashed border-black" />
         <p>Served by / Umehudumiwa na: {d.cashierName}</p>
         <p>Medical services are VAT exempt. / Huduma za matibabu hazitozwi VAT.</p>
-        {d.etims.invoiceNumber && <p>eTIMS: {d.etims.invoiceNumber}</p>}
+        {d.etims.invoiceNumber ? (
+          <>
+            <p>KRA eTIMS invoice: {d.etims.invoiceNumber}</p>
+            {d.etims.signature && <p>Signature / Sahihi: {d.etims.signature}</p>}
+          </>
+        ) : (
+          d.etims.status !== 'not_required' && <p>eTIMS: pending / inasubiri</p>
+        )}
         <p className="mt-1 text-center">Asante · Thank you · Pona haraka</p>
       </article>
     </div>

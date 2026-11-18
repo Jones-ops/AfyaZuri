@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom';
 import { formatKES, sumAmounts, toCents } from '@afyazuri/shared';
 import { api } from '../api.js';
 import { Can } from '../auth.jsx';
+import { AdjustmentsPanel } from '../components/billing/Adjustments.jsx';
 import PaymentPanel from '../components/billing/PaymentPanel.jsx';
 import { Badge, ErrorMessage, Field, PageHeader, formatDateTime, PageSkeleton } from '../components/ui.jsx';
 import { BILL_STATUS_TONE } from './Bills.jsx';
@@ -46,6 +47,7 @@ export default function BillDetail({ children }) {
       {children?.(b)}
       <Lines bill={b} />
       <Payments bill={b} />
+      <AdjustmentsPanel bill={b} />
     </>
   );
 }
@@ -67,9 +69,11 @@ function Totals({ bill: b }) {
         </div>
       ))}
       <div
-        className={`card p-3 ${toCents(b.balance) > 0 ? 'border-amber-400 bg-amber-50' : 'border-emerald-400 bg-emerald-50'}`}
+        className={`card p-3 ${toCents(b.balance) > 0 ? 'border-amber-400 bg-amber-50' : toCents(b.balance) < 0 ? 'border-sky-400 bg-sky-50' : 'border-emerald-400 bg-emerald-50'}`}
       >
-        <div className="text-xs text-slate-700">Patient owes</div>
+        <div className="text-xs text-slate-700">
+          {toCents(b.balance) < 0 ? 'Overpaid (refund due)' : 'Patient owes'}
+        </div>
         <div className="text-lg font-bold" data-testid="balance">
           {formatKES(b.balance)}
         </div>
@@ -247,6 +251,8 @@ function Payments({ bill: b }) {
             <th>Receipt</th>
             <th className="text-right">Amount</th>
             <th>Status</th>
+            <th>eTIMS</th>
+            <th>SMS</th>
           </tr>
         </thead>
         <tbody>
@@ -270,10 +276,56 @@ function Payments({ bill: b }) {
                   {p.status}
                 </Badge>
               </td>
+              <td>
+                <EtimsCell receipt={p} />
+              </td>
+              <td className="text-xs text-slate-600">{SMS_LABEL[p.sms] ?? '—'}</td>
             </tr>
           ))}
         </tbody>
       </table>
     </section>
+  );
+}
+
+const SMS_LABEL = {
+  sent: 'Sent',
+  queued: 'Sending…',
+  failed: 'Failed',
+  skipped_no_consent: 'No consent',
+  skipped_no_phone: 'No phone',
+  disabled: 'Off',
+};
+
+/** eTIMS status for a receipt, with a retry when the submission failed. */
+function EtimsCell({ receipt: p }) {
+  const qc = useQueryClient();
+  const retry = useMutation({
+    mutationFn: () => api.post(`/receipts/${p.receiptId}/etims-retry`),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['bill'] }),
+  });
+  if (!p.receiptId || !p.etims?.status) return '—';
+  if (p.etims.status === 'submitted')
+    return (
+      <span className="font-mono text-xs" title="KRA eTIMS control-unit invoice number">
+        {p.etims.invoiceNumber}
+      </span>
+    );
+  if (p.etims.status === 'not_required') return <span className="text-xs text-slate-600">not required</span>;
+  return (
+    <span className="flex items-center gap-2">
+      <Badge tone={p.etims.status === 'failed' ? 'red' : 'slate'}>{p.etims.status}</Badge>
+      {p.etims.status === 'failed' && (
+        <Can perm={['billing.payment.receive', 'billing.invoice.create']}>
+          <button
+            className="text-xs text-brand-800 hover:underline"
+            disabled={retry.isPending}
+            onClick={() => retry.mutate()}
+          >
+            Retry
+          </button>
+        </Can>
+      )}
+    </span>
   );
 }

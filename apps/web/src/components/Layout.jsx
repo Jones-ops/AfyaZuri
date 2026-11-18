@@ -12,6 +12,11 @@ const NAV = [
   { to: '/opd', key: 'queues', perm: 'opd.queue.read' },
   { to: '/cashier', key: 'cashier', perm: 'billing.shift.manage' },
   { to: '/billing', key: 'billing', perm: 'billing.read', end: true },
+  {
+    to: '/billing/approvals',
+    key: 'approvals',
+    perm: ['billing.waiver.approve', 'billing.refund.approve', 'billing.payment.receive'],
+  },
   { to: '/billing/setup', key: 'billingSetup', perm: 'billing.pricelist.manage' },
   { to: '/admin/break-glass', key: 'breakGlass', perm: 'audit.read' },
   { to: '/admin/users', key: 'users', perm: 'users.read' },
@@ -66,7 +71,7 @@ function FacilitySwitcher() {
 
 export default function Layout() {
   const { t, i18n } = useTranslation();
-  const { me, can, signOut } = useAuth();
+  const { me, can, canAny, signOut } = useAuth();
   const online = useOnline();
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
@@ -96,7 +101,7 @@ export default function Layout() {
     return () => window.removeEventListener('keydown', onKey);
   }, [canSearch, location.pathname, navigate]);
 
-  const items = NAV.filter((n) => !n.perm || can(n.perm));
+  const items = NAV.filter((n) => !n.perm || (Array.isArray(n.perm) ? canAny(n.perm) : can(n.perm)));
 
   return (
     <div className="flex min-h-screen flex-col">

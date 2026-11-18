@@ -38,6 +38,12 @@ export async function seed(knex) {
   if (process.env.NODE_ENV === 'production' && process.env.SEED_DEMO !== 'true') return;
   for (const kmhfl of ['99001', '99002']) {
     const facility = await knex('facilities').where({ kmhfl_code: kmhfl }).first('id');
+    // Demo KRA PIN so eTIMS (mock) submissions carry a seller PIN.
+    if (facility)
+      await knex('facilities')
+        .where({ id: facility.id })
+        .whereNull('kra_pin')
+        .update({ kra_pin: kmhfl === '99001' ? 'P051234567X' : 'P051234568Y' });
     if (!facility || (await knex('charge_items').where({ facility_id: facility.id }).first('id'))) continue;
     const depts = Object.fromEntries(
       (await knex('departments').where({ facility_id: facility.id }).select('id', 'code')).map((d) => [d.code, d.id]),

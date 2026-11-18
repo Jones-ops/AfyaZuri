@@ -73,6 +73,19 @@ const schema = z.object({
   ),
   /** Optional comma-separated IPs allowed to call the M-Pesa callbacks (Safaricom publishes its ranges). */
   MPESA_CALLBACK_ALLOWED_IPS: z.string().default(''),
+
+  // ---- KRA eTIMS ----
+  /** mock = in-process stand-in for KRA; off = documents are marked "not required". */
+  ETIMS_ENV: z.enum(['mock', 'off']).default('mock'),
+
+  // ---- SMS (Africa's Talking) ----
+  /** mock = bundled mock server; off = nothing is sent (messages are logged as disabled). */
+  SMS_ENV: z.enum(['mock', 'sandbox', 'production', 'off']).default('mock'),
+  SMS_BASE_URL: z.string().url().optional(),
+  SMS_USERNAME: z.string().min(1).default('sandbox'),
+  SMS_API_KEY: z.string().min(1).default('mock-api-key'),
+  /** Registered alphanumeric sender ID; leave empty to use the shared short code. */
+  SMS_SENDER_ID: z.string().max(11).default(''),
 });
 
 /**
@@ -100,6 +113,8 @@ export function loadConfig(env = process.env) {
     throw new Error(
       'Invalid configuration:\n  MPESA_CALLBACK_TOKEN must be set to a secret value (run `npm run secrets`)',
     );
+  if (c.NODE_ENV === 'production' && ['sandbox', 'production'].includes(c.SMS_ENV) && c.SMS_API_KEY === 'mock-api-key')
+    throw new Error("Invalid configuration:\n  SMS_API_KEY must be set to your Africa's Talking API key");
   if (!!c.TLS_CERT_FILE !== !!c.TLS_KEY_FILE)
     throw new Error('Invalid configuration:\n  Set both TLS_CERT_FILE and TLS_KEY_FILE, or neither');
   return {

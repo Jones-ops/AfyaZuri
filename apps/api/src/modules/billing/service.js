@@ -4,7 +4,7 @@ import '../../lib/db-types.js';
 // action and its charge commit together. Bill totals are recalculated in SQL
 // (numeric arithmetic, never floats) after every change.
 import { fromCents, splitLine, todayNairobi, toCents } from '@afyazuri/shared';
-import { AppError, badRequest, conflict, notFound } from '../../lib/errors.js';
+import { badRequest, conflict, notFound } from '../../lib/errors.js';
 import { decodeCursor, encodeCursor } from '../../lib/http.js';
 import { getSetting } from '../../lib/settings.js';
 import { recordAudit } from '../audit/service.js';
@@ -31,7 +31,12 @@ export function facilityOf(auth) {
   return auth.facilityId;
 }
 
-/** Next document number, e.g. BIL-2026-000123 / RCT-2026-000045. Atomic per facility, kind and year. */
+const NUMBER_PREFIX = { bill: 'BIL', receipt: 'RCT', credit_note: 'CRN', refund: 'RFD' };
+
+/**
+ * Next document number, e.g. BIL-2026-000123, RCT-2026-000045, CRN-… (credit note), RFD-… (refund voucher).
+ * Atomic per facility, kind and year.
+ */
 export async function nextNumber(trx, facilityId, kind) {
   const year = Number(todayNairobi().slice(0, 4));
   const { rows } = await trx.raw(
@@ -40,7 +45,7 @@ export async function nextNumber(trx, facilityId, kind) {
      RETURNING last_value`,
     [facilityId, kind, year],
   );
-  return `${kind === 'bill' ? 'BIL' : 'RCT'}-${year}-${String(rows[0].last_value).padStart(6, '0')}`;
+  return `${NUMBER_PREFIX[kind]}-${year}-${String(rows[0].last_value).padStart(6, '0')}`;
 }
 
 // ---- Catalogue ----------------------------------------------------------------
@@ -566,9 +571,20 @@ export async function getBill({ db }, auth, id) {
     db('payments as pay')
       .leftJoin('receipts as r', 'r.payment_id', 'pay.id')
       .leftJoin('users as u', 'u.id', 'pay.received_by')
+      .leftJoin('sms_messages as sm', function () {
+        this.on('sm.related_id', 'pay.id').andOnVal('sm.template', 'payment_received');
+      })
       .where('pay.bill_id', id)
       .orderBy('pay.created_at')
-      .select('pay.*', 'r.receipt_number', 'r.id as receipt_id', 'u.full_name as received_by_name'),
+      .select(
+        'pay.*',
+        'r.receipt_number',
+        'r.id as receipt_id',
+        'r.etims_status',
+        'r.etims_invoice_number',
+        'u.full_name as received_by_name',
+        'sm.status as sms_status',
+      ),
     db('waivers as w')
       .leftJoin('users as rq', 'rq.id', 'w.requested_by')
       .leftJoin('users as d', 'd.id', 'w.decided_by')
@@ -595,6 +611,8 @@ export async function getBill({ db }, auth, id) {
       receivedBy: p.received_by_name,
       receiptNumber: p.receipt_number,
       receiptId: p.receipt_id,
+      etims: { status: p.etims_status, invoiceNumber: p.etims_invoice_number },
+      sms: p.sms_status ?? null,
     })),
     waivers: waivers.map((w) => ({
       id: w.id,
@@ -602,6 +620,7 @@ export async function getBill({ db }, auth, id) {
       reason: w.reason,
       status: w.status,
       requestedBy: w.requested_by_name,
+      requestedById: w.requested_by,
       requestedAt: w.requested_at,
       decidedBy: w.decided_by_name,
       decidedAt: w.decided_at,
@@ -616,11 +635,15 @@ export async function getBill({ db }, auth, id) {
       paymentId: f.payment_id,
       method: f.method,
       requestedBy: f.requested_by_name,
+      requestedById: f.requested_by,
       requestedAt: f.requested_at,
       decidedBy: f.decided_by_name,
       decidedAt: f.decided_at,
       decisionNote: f.decision_note,
+      documentNumber: f.document_number,
+      reference: f.reference,
       paidAt: f.paid_at,
+      etims: { status: f.etims_status, invoiceNumber: f.etims_invoice_number },
     })),
   };
 }
@@ -720,16 +743,9 @@ export async function voidBillItem({ db }, auth, itemId, reason, meta) {
       .where({ id: itemId })
       .update({ status: 'voided', void_reason: reason, voided_by: auth.userId, voided_at: trx.fn.now() })
       .returning('*');
-    const totals = await recalcBill(trx, bill.id);
-    if (toCents(totals.balance) < 0 && toCents(totals.paid_amount) > 0)
-      throw new AppError(
-        409,
-        'OVERPAID_AFTER_VOID',
-        'Voiding this line would leave the patient overpaid. Raise a refund first.',
-        {
-          balance: money(totals.balance),
-        },
-      );
+    // A void after payment can leave the bill overpaid (negative balance). That credit is
+    // shown on the bill and paid back through an approved refund.
+    await recalcBill(trx, bill.id);
     await recordAudit(trx, actorOf(auth), meta, {
       action: 'update',
       entityType: 'bill_item',

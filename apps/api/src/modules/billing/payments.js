@@ -364,7 +364,12 @@ export async function getReceipt({ db }, auth, id, opts = {}, meta = {}) {
       balance: money(r.balance),
     },
     cashierName: r.cashier_name ?? 'M-Pesa',
-    etims: { status: r.etims_status, invoiceNumber: r.etims_invoice_number },
+    etims: {
+      status: r.etims_status,
+      invoiceNumber: r.etims_invoice_number,
+      controlUnitId: r.etims_status === 'submitted' ? (r.etims_response?.controlUnitId ?? null) : null,
+      signature: r.etims_status === 'submitted' ? (r.etims_response?.signature ?? null) : null,
+    },
   };
 }
 

@@ -32,17 +32,21 @@ const BillDetail = lazy(() => import('./pages/BillDetail.jsx'));
 const BillingSetup = lazy(() => import('./pages/BillingSetup.jsx'));
 const Cashier = lazy(() => import('./pages/Cashier.jsx'));
 const Receipt = lazy(() => import('./pages/Receipt.jsx'));
+const Approvals = lazy(() => import('./pages/Approvals.jsx'));
+
+const APPROVER = ['billing.waiver.approve', 'billing.refund.approve', 'billing.payment.receive'];
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
 });
 
 function Protected({ children, perm }) {
-  const { me, loading, can } = useAuth();
+  const { me, loading, can, canAny } = useAuth();
   if (loading) return <PageSkeleton />;
   if (!me) return <Navigate to="/login" replace />;
   if (me.user.mustChangePassword) return <Account forced />;
-  if (perm && !can(perm)) return <p className="p-6 text-sm text-slate-700">You do not have access to this page.</p>;
+  if (perm && !(Array.isArray(perm) ? canAny(perm) : can(perm)))
+    return <p className="p-6 text-sm text-slate-700">You do not have access to this page.</p>;
   return children;
 }
 
@@ -209,6 +213,14 @@ function App() {
             element={
               <Protected perm="billing.read">
                 <Receipt />
+              </Protected>
+            }
+          />
+          <Route
+            path="billing/approvals"
+            element={
+              <Protected perm={APPROVER}>
+                <Approvals />
               </Protected>
             }
           />

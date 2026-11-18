@@ -23,6 +23,14 @@ export const facilityBody = z.object({
   address: z.string().max(240).optional().nullable(),
   phone: kenyanPhone.optional().nullable(),
   email: z.string().email().max(254).optional().nullable(),
+  /** KRA PIN, reported to eTIMS on every receipt, e.g. P051234567X. */
+  kraPin: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[AP]d{9}[A-Z]$/, 'KRA PIN looks like P051234567X')
+    .optional()
+    .nullable(),
   mrnFormat: z
     .string()
     .max(60)

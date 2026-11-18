@@ -44,14 +44,18 @@ if (!url) {
 }
 await migrateAndSeed(url, { demo: process.env.SEED_DEMO === 'true', log });
 
-// Demo installs use the mock M-Pesa server; real ones set MPESA_ENV=sandbox|production.
-const mocks = (process.env.MPESA_ENV ?? 'mock') === 'mock' ? await startMocks({ log }) : null;
-if (mocks) log('M-Pesa is in MOCK mode: no real money moves. Set MPESA_ENV for live payments.');
+// Demo installs use the mock M-Pesa and SMS servers; real ones set MPESA_ENV / SMS_ENV.
+const mockMpesa = (process.env.MPESA_ENV ?? 'mock') === 'mock';
+const mockSms = (process.env.SMS_ENV ?? 'mock') === 'mock';
+const mocks = mockMpesa || mockSms ? await startMocks({ log }) : null;
+if (mocks && mockMpesa) log('M-Pesa is in MOCK mode: no real money moves. Set MPESA_ENV for live payments.');
+if (mocks && mockSms) log('SMS is in MOCK mode: nothing reaches phones. Set SMS_ENV to send for real.');
 const env = {
   ...process.env,
   DATABASE_URL: url,
   WEB_DIST: web,
-  ...(mocks ? { MPESA_BASE_URL: process.env.MPESA_BASE_URL ?? mocks.url } : {}),
+  ...(mocks && mockMpesa ? { MPESA_BASE_URL: process.env.MPESA_BASE_URL ?? mocks.url } : {}),
+  ...(mocks && mockSms ? { SMS_BASE_URL: process.env.SMS_BASE_URL ?? mocks.url } : {}),
 };
 let child;
 let stopping = false;
