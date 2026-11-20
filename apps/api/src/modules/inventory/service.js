@@ -133,6 +133,7 @@ const toItem = (i, packs = []) => ({
         keml: i.keml,
         atcCode: i.atc_code,
         controlled: i.controlled,
+        otcAllowed: i.otc_allowed,
       }
     : null,
   packSizes: packs.map((p) => ({ id: p.id, name: p.name, baseQty: Number(p.base_qty) })),
@@ -199,7 +200,11 @@ async function checkChargeItem(db, facilityId, chargeItemId) {
   if (!c) throw badRequest('That billing item is not at this facility');
 }
 
-const drugRow = (d) => ({
+const drugRow = (d) => {
+  if (d.controlled && d.otcAllowed) throw badRequest('A controlled drug cannot be sold over the counter');
+  return drugRowUnchecked(d);
+};
+const drugRowUnchecked = (d) => ({
   generic_name: d.genericName,
   brand_name: d.brandName ?? null,
   form: d.form,
@@ -210,6 +215,7 @@ const drugRow = (d) => ({
   keml: d.keml ?? false,
   atc_code: d.atcCode ?? null,
   controlled: d.controlled ?? false,
+  otc_allowed: d.otcAllowed ?? false,
 });
 
 /** @param {Deps} deps @param {AuthContext} auth @param {any} input @param {Meta} meta */

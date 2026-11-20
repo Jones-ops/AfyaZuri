@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { FREQUENCIES, ROUTES } from '../enums.js';
+import { kenyanPhone } from './common.js';
 import { quantity } from './inventory.js';
 
 const text = (max) => z.string().trim().max(max);
@@ -85,3 +86,17 @@ export const doseRuleBody = z
     note: text(300).optional().nullable(),
   })
   .refine((v) => v.maxSingleDose || v.maxDailyDose || v.maxDailyPerKg || v.minSingleDose, 'Set at least one limit');
+
+// ---- Over-the-counter sales -----------------------------------------------------------------
+
+export const otcSaleBody = z.object({
+  storeId: z.string().uuid(),
+  customerName: text(120).min(2),
+  customerPhone: kenyanPhone.optional().nullable(),
+  lines: z
+    .array(z.object({ itemId: z.string().uuid(), quantity }))
+    .min(1)
+    .max(30)
+    .refine((xs) => new Set(xs.map((x) => x.itemId)).size === xs.length, 'Each item once per sale'),
+});
+export const otcSalesQuery = z.object({ status: z.enum(['awaiting_payment', 'completed', 'cancelled']).optional() });

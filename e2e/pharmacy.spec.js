@@ -70,3 +70,54 @@ test('doctor prescribes past a mild-allergy warning; the pharmacy dispenses FEFO
 
   await docCtx.close();
 });
+
+test('walk-in sale: rung up at the pharmacy, paid at the cashier, then handed over', async ({ browser }) => {
+  const techCtx = await browser.newContext();
+  const tech = await techCtx.newPage();
+  await signIn(tech, 'pharmtech');
+  await tech.goto('/pharmacy');
+  await tech.getByRole('tab', { name: 'Walk-in sales' }).click();
+  await tech.getByRole('button', { name: 'New walk-in sale' }).click();
+  const customer = `Walk-in ${letters(6)}`;
+  await tech.getByLabel('Customer name').fill(customer);
+  await tech.getByLabel('Add an item').fill('amoxicillin 500');
+  await tech.getByRole('option', { name: /Amoxicillin 500 mg capsules/ }).click();
+  await expect(tech.getByText(/needs a prescription/)).toBeVisible();
+  await tech.getByLabel('Add an item').fill('oral rehyd');
+  await tech.getByRole('option', { name: /Oral rehydration salts/ }).click();
+  await tech.getByLabel(/^Quantity/).fill('3');
+  await tech.getByRole('button', { name: 'Ring up sale' }).click();
+  const info = tech.getByRole('status').filter({ hasText: /Send the customer to the cashier/ });
+  await expect(info).toContainText('KES 60.00');
+  const billNumber = (await info.locator('strong').innerText()).trim();
+  const row = tech.getByRole('region', { name: 'Walk-in sales' }).getByRole('listitem').filter({ hasText: customer });
+  await expect(row.getByRole('button', { name: 'Hand over' })).toBeDisabled();
+
+  // Cashier finds the bill by number and takes cash.
+  const cashCtx = await browser.newContext();
+  const cash = await cashCtx.newPage();
+  await signIn(cash, 'cashier');
+  await cash.request.post('/api/v1/shifts', { headers: H, data: { openingFloat: '0' } });
+  const bills = await (
+    await cash.request.get(`/api/v1/bills?status=outstanding&q=${encodeURIComponent(billNumber)}`)
+  ).json();
+  await cash.goto(`/billing/bills/${bills.data[0].id}`);
+  await expect(cash.getByText(customer).first()).toBeVisible();
+  await cash.getByLabel('Cash handed over').fill('100');
+  await cash.getByRole('button', { name: 'Receive cash' }).click();
+  await expect(cash.getByTestId('balance')).toHaveText('KES 0.00');
+  await cash.request.post('/api/v1/shifts/current/close', {
+    headers: H,
+    data: { declared: { cash: '60', mpesa: '0', card: '0', bank: '0' } },
+  });
+
+  await tech.reload();
+  await tech.getByRole('tab', { name: 'Walk-in sales' }).click();
+  await row.getByRole('button', { name: 'Hand over' }).click();
+  await tech.getByRole('tab', { name: 'Handed over' }).click();
+  await expect(
+    tech.getByRole('region', { name: 'Walk-in sales' }).getByRole('listitem').filter({ hasText: customer }),
+  ).toContainText('completed');
+
+  await Promise.all([techCtx.close(), cashCtx.close()]);
+});

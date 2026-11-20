@@ -345,6 +345,14 @@ export async function seed(knex) {
       if (pack) await knex('item_pack_sizes').insert({ item_id: item.id, name: pack[0], base_qty: pack[1] });
     }
 
+    // Pharmacy-only medicines that may be sold over the counter (never antibiotics or controlled drugs).
+    await knex('drugs')
+      .whereIn(
+        'item_id',
+        ['PARA500', 'IBU400', 'ORS', 'ZINC20', 'OMEP20'].map((c) => items[c].id),
+      )
+      .update({ otc_allowed: true });
+
     for (const [store, code, level, qty, max] of REORDER)
       if (stores[store])
         await knex('reorder_levels').insert({

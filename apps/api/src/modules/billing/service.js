@@ -673,6 +673,7 @@ export async function listBills({ db }, auth, q) {
     query.andWhere((w) =>
       w
         .whereILike('b.bill_number', like)
+        .orWhereILike('b.customer_name', like)
         .orWhereILike('p.mrn', like)
         .orWhereRaw('p.search_name LIKE ?', [like.toLowerCase()]),
     );

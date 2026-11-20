@@ -16,6 +16,7 @@ const EMPTY = {
   form: 'tablet',
   strength: '',
   keml: true,
+  otcAllowed: false,
   atcCode: '',
   packName: '',
   packQty: '',
@@ -39,6 +40,7 @@ function NewItem({ onDone }) {
                 form: v.form,
                 strength: v.strength || null,
                 keml: v.keml,
+                otcAllowed: v.otcAllowed,
                 atcCode: v.atcCode || null,
               }
             : null,
@@ -97,6 +99,14 @@ function NewItem({ onDone }) {
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={v.keml} onChange={(e) => setV({ ...v, keml: e.target.checked })} />
             On the Kenya Essential Medicines List
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={v.otcAllowed}
+              onChange={(e) => setV({ ...v, otcAllowed: e.target.checked })}
+            />
+            May be sold over the counter
           </label>
         </>
       )}
@@ -204,7 +214,8 @@ export default function Items() {
               {list.data.data.map((i) => (
                 <tr key={i.id} className={i.active ? '' : 'text-slate-400'}>
                   <td>
-                    <span className="font-medium">{i.name}</span> {i.drug?.keml && <Badge tone="teal">KEML</Badge>}
+                    <span className="font-medium">{i.name}</span> {i.drug?.keml && <Badge tone="teal">KEML</Badge>}{' '}
+                    {i.drug?.otcAllowed && <Badge tone="blue">OTC</Badge>}
                     <div className="text-xs text-slate-600">
                       <span className="font-mono">{i.code}</span>
                       {i.drug && ` · ${i.drug.genericName} · ${i.drug.form}`}

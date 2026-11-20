@@ -5,6 +5,8 @@ import {
   dispenseBody,
   doseRuleBody,
   idParams,
+  otcSaleBody,
+  otcSalesQuery,
   prescriptionBody,
   prescriptionCheckBody,
   worklistQuery,
@@ -12,6 +14,7 @@ import {
 import { requestMeta as m, validate } from '../../lib/http.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { idempotent } from '../../middleware/idempotency.js';
+import * as otc from './otc.js';
 import * as rx from './service.js';
 
 const storeQuery = z.object({ storeId: z.string().uuid().optional() });
@@ -85,5 +88,26 @@ export function pharmacyRoutes(deps) {
     r.post(`/pharmacy/dose-rules/:id/${path}`, requirePermission('pharmacy.rules.manage'), id, async (req, res) =>
       res.json(await rx.setDoseRuleActive(deps, req.auth, req.valid.params.id, active, m(req))),
     );
+  // Over-the-counter sales (the cashier takes the money; the pharmacy hands over once paid)
+  const sell = requirePermission('pharmacy.otc.sell');
+  r.get('/otc-sales', requirePermission('pharmacy.read'), validate({ query: otcSalesQuery }), async (req, res) =>
+    res.json({ data: await otc.listOtcSales(deps, req.auth, req.valid.query) }),
+  );
+  r.get('/otc-sales/:id', requirePermission('pharmacy.read'), id, async (req, res) =>
+    res.json(await otc.getOtcSale(deps, req.auth, req.valid.params.id)),
+  );
+  r.post(
+    '/otc-sales',
+    sell,
+    idempotent(deps.db, { required: true }),
+    validate({ body: otcSaleBody }),
+    async (req, res) => res.status(201).json(await otc.createOtcSale(deps, req.auth, req.valid.body, m(req))),
+  );
+  r.post('/otc-sales/:id/hand-over', sell, id, async (req, res) =>
+    res.json(await otc.handOver(deps, req.auth, req.valid.params.id, m(req))),
+  );
+  r.post('/otc-sales/:id/cancel', sell, validate({ params: idParams, body: cancelRxBody }), async (req, res) =>
+    res.json(await otc.cancelOtcSale(deps, req.auth, req.valid.params.id, req.valid.body.reason, m(req))),
+  );
   return r;
 }

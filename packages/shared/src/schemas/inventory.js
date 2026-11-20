@@ -76,6 +76,8 @@ export const drugBody = z.object({
     .optional()
     .nullable(),
   controlled: z.boolean().default(false),
+  /** May be sold over the counter without a prescription. */
+  otcAllowed: z.boolean().default(false),
 });
 
 export const packSizeBody = z.object({ name: text(60).min(1), baseQty: quantity });

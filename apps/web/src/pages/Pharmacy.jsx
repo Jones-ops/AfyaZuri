@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api, qs } from '../api.js';
 import { Can } from '../auth.jsx';
 import { ItemPicker, useStores } from '../components/inventory/common.jsx';
+import OtcSales from '../components/pharmacy/OtcSales.jsx';
 import {
   Alert,
   Badge,
@@ -207,6 +208,7 @@ export default function Pharmacy() {
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(null);
   const [done, setDone] = useState(null);
+  const [mode, setMode] = useState('rx');
   useEffect(() => {
     if (!storeId && dispensing.length) setStoreId(dispensing[0].id);
   }, [storeId, dispensing]);
@@ -219,9 +221,28 @@ export default function Pharmacy() {
     <>
       <PageHeader
         title="Pharmacy"
-        description="Prescriptions waiting to be dispensed. Earliest-expiry stock is given first."
+        description="Prescriptions to dispense and walk-in sales. Earliest-expiry stock is given first."
       />
-      <div className="card mb-4 grid gap-3 p-4 sm:grid-cols-[1fr_2fr_auto] sm:items-end">
+      <div role="tablist" aria-label="Pharmacy work" className="mb-4 flex gap-1 border-b border-slate-200 pb-2">
+        {[
+          ['rx', 'Prescriptions'],
+          ['otc', 'Walk-in sales'],
+        ].map(([t, l]) => (
+          <button
+            key={t}
+            role="tab"
+            aria-selected={mode === t}
+            aria-current={mode === t ? 'page' : undefined}
+            className={`nav-item rounded-md px-3 py-1.5 text-sm font-medium ${mode === t ? 'text-brand-800' : 'text-slate-700 hover:bg-white'}`}
+            onClick={() => setMode(t)}
+          >
+            {l}
+          </button>
+        ))}
+      </div>
+      <div
+        className={`card mb-4 grid gap-3 p-4 sm:items-end ${mode === 'rx' ? 'sm:grid-cols-[1fr_2fr_auto]' : 'sm:grid-cols-[1fr_2fr]'}`}
+      >
         <Field label="Dispensing from">
           <select className="input" value={storeId} onChange={(e) => setStoreId(e.target.value)}>
             {dispensing.map((s) => (
@@ -231,77 +252,87 @@ export default function Pharmacy() {
             ))}
           </select>
         </Field>
-        <Field label="Find">
-          <input
-            className="input"
-            placeholder="Name, MRN or RX number"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-        </Field>
-        <div role="tablist" aria-label="Show" className="flex gap-1">
-          {[
-            ['open', 'Waiting'],
-            ['dispensed', 'Dispensed'],
-          ].map(([t, l]) => (
-            <button
-              key={t}
-              role="tab"
-              aria-selected={tab === t}
-              className={tab === t ? 'btn-primary min-h-10' : 'btn-secondary min-h-10'}
-              onClick={() => setTab(t)}
-            >
-              {l}
-            </button>
-          ))}
-        </div>
-      </div>
-      {done && (
-        <div className="mb-4">
-          <Alert kind="success">
-            Dispensed for {done.patient} ({done.rxNumber}):{' '}
-            {done.given
-              .map(
-                (d) =>
-                  `${d.item} × ${d.quantity} (batch ${d.batches.map((b) => `${b.batchNumber} exp ${b.expiryDate}`).join(', ')})`,
-              )
-              .join('; ')}
-            {done.given.some((d) => d.billed) && '. Added to the patient’s bill.'}
-          </Alert>
-        </div>
-      )}
-      <section className="card" aria-label="Worklist">
-        {list.isPending ? (
-          <Spinner label="Loading prescriptions…" />
-        ) : list.error ? (
-          <ErrorMessage error={list.error} />
-        ) : list.data.data.length === 0 ? (
-          <EmptyState title={tab === 'open' ? 'Nothing waiting' : 'Nothing dispensed yet'} />
-        ) : (
-          <ul className="divide-y divide-slate-100">
-            {list.data.data.map((r) => (
-              <li key={r.id}>
+        {mode === 'rx' && (
+          <>
+            <Field label="Find">
+              <input
+                className="input"
+                placeholder="Name, MRN or RX number"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+            </Field>
+            <div role="tablist" aria-label="Show" className="flex gap-1">
+              {[
+                ['open', 'Waiting'],
+                ['dispensed', 'Dispensed'],
+              ].map(([t, l]) => (
                 <button
-                  className="flex w-full flex-wrap items-center gap-3 px-4 py-3 text-left hover:bg-brand-50/40"
-                  aria-expanded={open === r.id}
-                  onClick={() => setOpen(open === r.id ? null : r.id)}
+                  key={t}
+                  role="tab"
+                  aria-selected={tab === t}
+                  className={tab === t ? 'btn-primary min-h-10' : 'btn-secondary min-h-10'}
+                  onClick={() => setTab(t)}
                 >
-                  <span className="font-mono text-sm">{r.rxNumber}</span>
-                  <span className="font-medium">{r.patient}</span>
-                  <span className="font-mono text-xs text-slate-600">{r.mrn}</span>
-                  <Badge tone={r.status === 'active' ? 'amber' : r.status === 'dispensed' ? 'green' : 'blue'}>
-                    {r.status.replace('_', ' ')}
-                  </Badge>
-                  <span className="ml-auto text-xs text-slate-600">
-                    {r.items} item{r.items === 1 ? '' : 's'} · {r.prescriber} · {formatDateTime(r.createdAt)}
-                  </span>
+                  {l}
                 </button>
-                {open === r.id && <Detail id={r.id} storeId={storeId} onDispensed={setDone} />}
-              </li>
-            ))}
-          </ul>
+              ))}
+            </div>
+          </>
         )}
-      </section>
+      </div>
+      {mode === 'otc' ? (
+        <OtcSales storeId={storeId} />
+      ) : (
+        <>
+          {done && (
+            <div className="mb-4">
+              <Alert kind="success">
+                Dispensed for {done.patient} ({done.rxNumber}):{' '}
+                {done.given
+                  .map(
+                    (d) =>
+                      `${d.item} × ${d.quantity} (batch ${d.batches.map((b) => `${b.batchNumber} exp ${b.expiryDate}`).join(', ')})`,
+                  )
+                  .join('; ')}
+                {done.given.some((d) => d.billed) && '. Added to the patient’s bill.'}
+              </Alert>
+            </div>
+          )}
+          <section className="card" aria-label="Worklist">
+            {list.isPending ? (
+              <Spinner label="Loading prescriptions…" />
+            ) : list.error ? (
+              <ErrorMessage error={list.error} />
+            ) : list.data.data.length === 0 ? (
+              <EmptyState title={tab === 'open' ? 'Nothing waiting' : 'Nothing dispensed yet'} />
+            ) : (
+              <ul className="divide-y divide-slate-100">
+                {list.data.data.map((r) => (
+                  <li key={r.id}>
+                    <button
+                      className="flex w-full flex-wrap items-center gap-3 px-4 py-3 text-left hover:bg-brand-50/40"
+                      aria-expanded={open === r.id}
+                      onClick={() => setOpen(open === r.id ? null : r.id)}
+                    >
+                      <span className="font-mono text-sm">{r.rxNumber}</span>
+                      <span className="font-medium">{r.patient}</span>
+                      <span className="font-mono text-xs text-slate-600">{r.mrn}</span>
+                      <Badge tone={r.status === 'active' ? 'amber' : r.status === 'dispensed' ? 'green' : 'blue'}>
+                        {r.status.replace('_', ' ')}
+                      </Badge>
+                      <span className="ml-auto text-xs text-slate-600">
+                        {r.items} item{r.items === 1 ? '' : 's'} · {r.prescriber} · {formatDateTime(r.createdAt)}
+                      </span>
+                    </button>
+                    {open === r.id && <Detail id={r.id} storeId={storeId} onDispensed={setDone} />}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </>
+      )}
     </>
   );
 }
