@@ -40,6 +40,7 @@ const PurchaseOrders = lazy(() => import('./pages/inventory/PurchaseOrders.jsx')
 const InventoryItems = lazy(() => import('./pages/inventory/Items.jsx'));
 const Expiry = lazy(() => import('./pages/inventory/Expiry.jsx'));
 const Movements = lazy(() => import('./pages/inventory/Movements.jsx'));
+const Pharmacy = lazy(() => import('./pages/Pharmacy.jsx'));
 const Requisitions = lazy(() => import('./pages/inventory/Requisitions.jsx'));
 const StockTakes = lazy(() => import('./pages/inventory/StockTakes.jsx'));
 const InventoryReports = lazy(() => import('./pages/inventory/InventoryReports.jsx'));
@@ -223,6 +224,14 @@ function App() {
             element={
               <Protected perm="billing.read">
                 <Receipt />
+              </Protected>
+            }
+          />
+          <Route
+            path="pharmacy"
+            element={
+              <Protected perm="pharmacy.read">
+                <Pharmacy />
               </Protected>
             }
           />

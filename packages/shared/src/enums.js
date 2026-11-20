@@ -142,3 +142,34 @@ export const MOVEMENT_TYPES = [
   'stocktake',
   'expiry_writeoff',
 ];
+
+/** Dosing frequencies and how many doses a day each means (null: as needed or a single dose). */
+export const FREQUENCIES = {
+  OD: { label: 'Once daily', perDay: 1 },
+  BD: { label: 'Twice daily', perDay: 2 },
+  TDS: { label: 'Three times daily', perDay: 3 },
+  QID: { label: 'Four times daily', perDay: 4 },
+  Q4H: { label: 'Every 4 hours', perDay: 6 },
+  Q6H: { label: 'Every 6 hours', perDay: 4 },
+  Q8H: { label: 'Every 8 hours', perDay: 3 },
+  NOCTE: { label: 'At night', perDay: 1 },
+  MANE: { label: 'In the morning', perDay: 1 },
+  WEEKLY: { label: 'Once a week', perDay: 1 / 7 },
+  STAT: { label: 'Once, now', perDay: null },
+  PRN: { label: 'When needed', perDay: null },
+};
+export const ROUTES = [
+  'oral',
+  'IV',
+  'IM',
+  'IV/IM',
+  'SC',
+  'topical',
+  'inhaled',
+  'rectal',
+  'vaginal',
+  'eye',
+  'ear',
+  'nasal',
+  'sublingual',
+];

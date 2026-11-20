@@ -87,13 +87,16 @@ export function StockStatus({ status }) {
 }
 
 /** Search the item master; calls onPick(item). */
-export function ItemPicker({ onPick, label = 'Item', category, autoFocus }) {
+export function ItemPicker({ onPick, label = 'Item', category, autoFocus, source = 'items' }) {
   const id = useId();
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
   const res = useQuery({
-    queryKey: ['items', 'search', q, category],
-    queryFn: () => api.get(`/items${qs({ q, category, active: 'true', limit: 15 })}`),
+    queryKey: [source, 'search', q, category],
+    queryFn: () =>
+      source === 'formulary'
+        ? api.get(`/formulary${qs({ q })}`)
+        : api.get(`/items${qs({ q, category, active: 'true', limit: 15 })}`),
     enabled: q.trim().length >= 2,
     staleTime: 30_000,
   });
@@ -140,6 +143,9 @@ export function ItemPicker({ onPick, label = 'Item', category, autoFocus }) {
                 <span className="font-medium">{i.name}</span>{' '}
                 <span className="font-mono text-xs text-slate-600">{i.code}</span>
                 {i.drug && <span className="block text-xs text-slate-600">{i.drug.genericName}</span>}
+                {i.inStock === false && (
+                  <span className="block text-xs text-amber-800">Not in stock at the pharmacy</span>
+                )}
               </button>
             </li>
           ))}

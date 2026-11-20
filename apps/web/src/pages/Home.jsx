@@ -33,6 +33,13 @@ const WORK = [
     icon: 'M7 3h10v18l-2.5-2-2.5 2-2.5-2L7 21zM10 8h4M10 12h4',
   },
   {
+    to: '/pharmacy',
+    perm: 'pharmacy.read',
+    title: 'Pharmacy',
+    body: 'Prescriptions to dispense, with safety checks.',
+    icon: 'M10.5 20.5 3.5 13.5a5 5 0 0 1 7-7l7 7a5 5 0 0 1-7 7ZM8.5 8.5l7 7',
+  },
+  {
     to: '/inventory',
     perm: 'inventory.read',
     title: 'Stock',

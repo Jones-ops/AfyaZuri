@@ -14,3 +14,5 @@ export * from './schemas/emr.js';
 export * from './money.js';
 export * from './schemas/billing.js';
 export * from './schemas/inventory.js';
+export * from './dosing.js';
+export * from './schemas/pharmacy.js';

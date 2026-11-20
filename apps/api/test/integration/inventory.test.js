@@ -50,12 +50,17 @@ describe('stock on hand', () => {
   });
 
   it('picks the earliest expiry first and never hands out expired stock', async () => {
+    // Other tests dispense from the earliest batch, so read what is there now.
+    const batches = (await pharmacist.get(`/api/v1/stores/${stores.PHARM.id}/stock/${items.PARA500.id}`)).body.data;
+    const [first, second] = batches.filter((b) => !b.expired);
+    expect(first.batchNumber).toBe('PCM2390');
     await ctx.db
       .transaction(async (trx) => {
-        const picks = await allocateFefo(trx, { storeId: stores.PHARM.id, itemId: items.PARA500.id, quantity: 350 });
+        const want = Number(first.quantity) + 50;
+        const picks = await allocateFefo(trx, { storeId: stores.PHARM.id, itemId: items.PARA500.id, quantity: want });
         expect(picks.map((p) => [p.batchNumber, p.quantity])).toEqual([
-          ['PCM2390', 300],
-          ['PCM2401', 50],
+          ['PCM2390', Number(first.quantity)],
+          [second.batchNumber, 50],
         ]);
         await expect(
           allocateFefo(trx, { storeId: stores.PHARM.id, itemId: items.IBU400.id, quantity: 450 }),

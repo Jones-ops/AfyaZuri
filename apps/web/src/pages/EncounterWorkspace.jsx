@@ -5,12 +5,13 @@ import { api } from '../api.js';
 import { Can } from '../auth.jsx';
 import DiagnosesPanel from '../components/emr/DiagnosesPanel.jsx';
 import NotesPanel from '../components/emr/NotesPanel.jsx';
+import PrescriptionsPanel from '../components/emr/PrescriptionsPanel.jsx';
 import VitalsPanel from '../components/emr/VitalsPanel.jsx';
 import PatientBanner from '../components/PatientBanner.jsx';
 import { Alert, Badge, ErrorMessage, PageHeader, Spinner, formatDateTime, PageSkeleton } from '../components/ui.jsx';
 import { usePatient } from './PatientDetail.jsx';
 
-/** One visit's clinical workspace: vitals, notes and diagnoses. */
+/** One visit's clinical workspace: vitals, notes, diagnoses and prescriptions. */
 export default function EncounterWorkspace() {
   const { id } = useParams();
   const qc = useQueryClient();
@@ -81,6 +82,9 @@ export default function EncounterWorkspace() {
           <DiagnosesPanel encounterId={id} diagnoses={clinical.data.diagnoses} onChange={refresh} />
           <div className="xl:col-span-2">
             <NotesPanel encounterId={id} notes={clinical.data.notes} onChange={refresh} />
+          </div>
+          <div className="xl:col-span-2">
+            <PrescriptionsPanel encounterId={id} />
           </div>
         </div>
       )}

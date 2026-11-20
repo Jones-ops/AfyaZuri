@@ -34,6 +34,7 @@ export const PATIENT_LINKED_TABLES = [
   'queue_tickets',
   'break_glass_access',
   'bills',
+  'prescriptions',
 ];
 
 const BREAK_GLASS_HOURS_DEFAULT = 4;
