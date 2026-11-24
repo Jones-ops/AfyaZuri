@@ -3,7 +3,20 @@ import { useRef, useState } from 'react';
 import { LAB_PRIORITIES } from '@afyazuri/shared';
 import { api } from '../../api.js';
 import { Can } from '../../auth.jsx';
+import { Link } from 'react-router-dom';
+import { ResultTable, useItemResults } from '../lab/Results.jsx';
 import { Badge, ErrorMessage, Field, formatDateTime } from '../ui.jsx';
+
+function Released({ itemId }) {
+  const r = useItemResults(itemId);
+  if (!r.data) return null;
+  return (
+    <div className="mt-2 rounded border border-slate-200 bg-white/60 p-2">
+      <div className="text-xs font-semibold">{r.data.test.name}</div>
+      <ResultTable data={r.data} />
+    </div>
+  );
+}
 
 export const LAB_STATUS_TONE = {
   ordered: 'slate',
@@ -124,6 +137,16 @@ export default function LabOrdersPanel({ encounterId }) {
               </li>
             ))}
           </ul>
+          {o.items
+            .filter((i) => i.status === 'verified')
+            .map((i) => (
+              <Released key={i.id} itemId={i.id} />
+            ))}
+          {o.items.some((i) => i.status === 'verified') && (
+            <Link className="mt-1 inline-block text-xs text-brand-800 hover:underline" to={`/lab/report/${o.id}`}>
+              Printable report →
+            </Link>
+          )}
         </div>
       ))}
       {list.data && list.data.data.length === 0 && !ordering && (

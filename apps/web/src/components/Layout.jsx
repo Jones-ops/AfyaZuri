@@ -5,6 +5,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { setLanguage } from '../i18n.js';
+import NotificationBell from './NotificationBell.jsx';
 
 const NAV = [
   { to: '/', key: 'home', perm: null, end: true },
@@ -144,6 +145,7 @@ export default function Layout() {
             <span className={`h-2 w-2 rounded-full ${online ? 'bg-emerald-600' : 'bg-amber-600'}`} aria-hidden />
             {online ? t('online') : t('offline')}
           </span>
+          <NotificationBell />
           <select
             aria-label="Language"
             className="rounded border border-brand-600 bg-brand-800 px-1 py-1 text-xs"

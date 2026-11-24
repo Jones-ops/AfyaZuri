@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api, qs } from '../api.js';
 import { Can } from '../auth.jsx';
+import { ResultForm, VerifyPanel } from '../components/lab/Results.jsx';
 import {
   Alert,
   Badge,
@@ -78,6 +79,7 @@ function ReceiveBox() {
 
 function OrderCard({ o, stage }) {
   const qc = useQueryClient();
+  const [open, setOpen] = useState(null);
   const navigate = useNavigate();
   const collect = useMutation({
     mutationFn: () => api.post(`/lab-orders/${o.orderId}/collect`, {}),
@@ -134,6 +136,59 @@ function OrderCard({ o, stage }) {
           </div>
         </Can>
       )}
+      {stage === 'result' && (
+        <Can perm="lab.results.enter">
+          <div className="mt-2 flex flex-wrap gap-2">
+            {o.tests.map((t) => (
+              <button
+                key={t.id}
+                className="btn-secondary min-h-8 px-3 text-xs"
+                aria-expanded={open === t.id}
+                onClick={() => setOpen(open === t.id ? null : t.id)}
+              >
+                Enter results: {t.name}
+              </button>
+            ))}
+          </div>
+          {open && (
+            <div className="mt-2">
+              <ResultForm itemId={open} onDone={() => setOpen(null)} />
+            </div>
+          )}
+        </Can>
+      )}
+      {stage === 'verify' && (
+        <Can perm="lab.results.verify">
+          <div className="mt-2 grid gap-2 lg:grid-cols-2">
+            {o.tests.map((t) => (
+              <VerifyPanel key={t.id} itemId={t.id} />
+            ))}
+          </div>
+        </Can>
+      )}
+      {stage === 'done' && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Link className="btn-secondary min-h-8 px-3 text-xs" to={`/lab/report/${o.orderId}`}>
+            Result report
+          </Link>
+          <Can perm="lab.results.verify">
+            {o.tests.map((t) => (
+              <button
+                key={t.id}
+                className="btn-secondary min-h-8 px-3 text-xs"
+                onClick={() => setOpen(open === t.id ? null : t.id)}
+              >
+                Amend {t.name}
+              </button>
+            ))}
+          </Can>
+        </div>
+      )}
+      {stage === 'done' && open && (
+        <div className="mt-2">
+          <ResultForm itemId={open} amend onDone={() => setOpen(null)} />
+        </div>
+      )}
       <ErrorMessage error={collect.error ?? reject.error} />
     </li>
   );
@@ -141,7 +196,9 @@ function OrderCard({ o, stage }) {
 
 /** The lab's worklist, stage by stage. STAT orders come first; overdue tests are flagged. */
 export default function Lab() {
-  const [stage, setStage] = useState('collect');
+  const [params, setParams] = useSearchParams();
+  const stage = STAGES.some(([s]) => s === params.get('stage')) ? params.get('stage') : 'collect';
+  const setStage = (s) => setParams({ stage: s });
   const [q, setQ] = useState('');
   const list = useQuery({
     queryKey: ['lab-worklist', stage, q],

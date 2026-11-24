@@ -4,6 +4,7 @@ import { AppError, badRequest, conflict, forbidden, notFound } from '../../lib/e
 import { decodeCursor, encodeCursor } from '../../lib/http.js';
 import { getSetting } from '../../lib/settings.js';
 import { recordAudit } from '../audit/service.js';
+import { notify } from '../notifications/inbox.js';
 import { clinicalAccess } from './access.js';
 import { classifyQuery, maskIdentifier, maskPhone, nextMrn, scoreCandidate } from './identity.js';
 
@@ -929,17 +930,18 @@ export async function breakGlass({ db }, auth, id, reason, meta) {
       .andWhere((w) => w.where('ur.facility_id', auth.facilityId).orWhereNull('ur.facility_id'))
       .distinct('ur.user_id')
       .pluck('ur.user_id');
-    if (reviewers.length)
-      await trx('notifications').insert(
-        reviewers.map((uid) => ({
-          facility_id: auth.facilityId,
-          user_id: uid,
-          channel: 'in_app',
-          template: 'break_glass.used',
-          priority: 'high',
-          payload: JSON.stringify({ grantId: grant.id, patientId: id, mrn: p.mrn, by: auth.fullName, reason }),
-        })),
-      );
+    for (const uid of reviewers)
+      await notify(trx, {
+        userId: uid,
+        facilityId: auth.facilityId,
+        type: 'break_glass.used',
+        severity: 'warning',
+        title: 'Emergency access used',
+        body: `${auth.fullName} opened restricted record ${p.mrn}: “${reason}”`,
+        link: '/admin/break-glass',
+        patientId: id,
+        dedupeKey: `break-glass:${grant.id}`,
+      });
     return { grantId: grant.id, expiresAt: grant.expires_at };
   });
 }

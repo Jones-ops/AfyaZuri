@@ -372,7 +372,7 @@ describe('restricted records and break-the-glass', () => {
       .where({ user_id: fa.id, template: 'break_glass.used' })
       .orderBy('created_at', 'desc')
       .first();
-    expect(note.payload.patientId).toBe(p.id);
+    expect(note).toMatchObject({ patient_id: p.id, title: 'Emergency access used', severity: 'warning' });
 
     const queue = (await facadmin.get('/api/v1/break-glass')).body.data;
     expect(queue.find((g) => g.id === grant.body.grantId)).toMatchObject({ username: 'doctor', reviewedAt: null });

@@ -95,3 +95,35 @@ export const labTestUpdateBody = z.object({
   active: z.boolean().optional(),
 });
 export const labCatalogueQuery = z.object({ q: text(60).optional(), active: z.enum(['true', 'false']).optional() });
+
+// ---- Results ------------------------------------------------------------------------------------
+
+export const cultureResult = z
+  .object({
+    growth: z.enum(['no_growth', 'growth', 'contaminated']),
+    organism: text(120).optional().nullable(),
+    colonyCount: text(60).optional().nullable(),
+    sensitivities: z
+      .array(z.object({ antibiotic: text(80).min(2), result: z.enum(['S', 'I', 'R']) }))
+      .max(40)
+      .default([]),
+  })
+  .refine((c) => c.growth !== 'growth' || !!c.organism, { path: ['organism'], message: 'Name the organism' });
+
+export const resultValue = z.object({
+  componentId: z.string().uuid(),
+  /** numeric, or the chosen answer for options */
+  value: z
+    .union([z.number(), z.string().trim().max(80)])
+    .optional()
+    .nullable(),
+  /** free text */
+  text: text(2000).optional().nullable(),
+  culture: cultureResult.optional().nullable(),
+});
+
+export const resultEntryBody = z.object({
+  values: z.array(resultValue).min(1).max(60),
+  comment: text(1000).optional().nullable(),
+});
+export const resultAmendBody = resultEntryBody.extend({ reason: text(300).min(5) });

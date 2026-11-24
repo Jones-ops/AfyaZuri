@@ -9,10 +9,13 @@ import {
   labTestUpdateBody,
   labWorklistQuery,
   reasonBody,
+  resultAmendBody,
+  resultEntryBody,
 } from '@afyazuri/shared';
 import { requestMeta as m, validate } from '../../lib/http.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { idempotent } from '../../middleware/idempotency.js';
+import * as results from './results.js';
 import * as lab from './service.js';
 
 /** @param {import('../../app.js').Deps} deps */
@@ -88,6 +91,34 @@ export function labRoutes(deps) {
     validate({ params: idParams, body: reasonBody }),
     async (req, res) =>
       res.json(await lab.rejectSample(deps, req.auth, req.valid.params.id, req.valid.body.reason, m(req))),
+  );
+  // Results
+  const seeResults = requirePermission(['lab.read', 'emr.read']);
+  r.get('/lab-order-items/:id/results', seeResults, id, async (req, res) =>
+    res.json(await results.itemResults(deps, req.auth, req.valid.params.id)),
+  );
+  r.post(
+    '/lab-order-items/:id/results',
+    requirePermission('lab.results.enter'),
+    validate({ params: idParams, body: resultEntryBody }),
+    async (req, res) =>
+      res.json(await results.enterResults(deps, req.auth, req.valid.params.id, req.valid.body, m(req))),
+  );
+  r.post('/lab-order-items/:id/verify', requirePermission('lab.results.verify'), id, async (req, res) =>
+    res.json(await results.verifyResults(deps, req.auth, req.valid.params.id, m(req))),
+  );
+  r.post(
+    '/lab-order-items/:id/amend',
+    requirePermission('lab.results.verify'),
+    validate({ params: idParams, body: resultAmendBody }),
+    async (req, res) =>
+      res.json(await results.amendResults(deps, req.auth, req.valid.params.id, req.valid.body, m(req))),
+  );
+  r.get('/lab-orders/:id/report', seeResults, id, async (req, res) =>
+    res.json(await results.labReport(deps, req.auth, req.valid.params.id)),
+  );
+  r.get('/patients/:id/lab-results', requirePermission('emr.read'), id, async (req, res) =>
+    res.json({ data: await results.patientLabResults(deps, req.auth, req.valid.params.id) }),
   );
   return r;
 }
