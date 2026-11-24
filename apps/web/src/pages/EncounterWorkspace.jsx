@@ -4,6 +4,7 @@ import { ageParts } from '@afyazuri/shared';
 import { api } from '../api.js';
 import { Can } from '../auth.jsx';
 import DiagnosesPanel from '../components/emr/DiagnosesPanel.jsx';
+import LabOrdersPanel from '../components/emr/LabOrdersPanel.jsx';
 import NotesPanel from '../components/emr/NotesPanel.jsx';
 import PrescriptionsPanel from '../components/emr/PrescriptionsPanel.jsx';
 import VitalsPanel from '../components/emr/VitalsPanel.jsx';
@@ -83,9 +84,8 @@ export default function EncounterWorkspace() {
           <div className="xl:col-span-2">
             <NotesPanel encounterId={id} notes={clinical.data.notes} onChange={refresh} />
           </div>
-          <div className="xl:col-span-2">
-            <PrescriptionsPanel encounterId={id} />
-          </div>
+          <LabOrdersPanel encounterId={id} />
+          <PrescriptionsPanel encounterId={id} />
         </div>
       )}
     </>

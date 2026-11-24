@@ -173,3 +173,19 @@ export const ROUTES = [
   'nasal',
   'sublingual',
 ];
+
+// ---- Laboratory --------------------------------------------------------------------------
+export const LAB_SECTIONS = [
+  'haematology',
+  'biochemistry',
+  'microbiology',
+  'parasitology',
+  'serology',
+  'urinalysis',
+  'other',
+];
+export const SPECIMEN_TYPES = ['blood', 'serum', 'plasma', 'urine', 'stool', 'sputum', 'swab', 'csf', 'other'];
+export const LAB_RESULT_TYPES = ['numeric', 'text', 'options', 'culture'];
+export const LAB_PRIORITIES = ['routine', 'urgent', 'stat'];
+/** Life of an ordered test. Results become visible on the record only when 'verified'. */
+export const LAB_ITEM_STATUS = ['ordered', 'collected', 'received', 'resulted', 'verified', 'cancelled'];

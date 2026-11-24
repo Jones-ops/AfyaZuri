@@ -40,6 +40,8 @@ const PurchaseOrders = lazy(() => import('./pages/inventory/PurchaseOrders.jsx')
 const InventoryItems = lazy(() => import('./pages/inventory/Items.jsx'));
 const Expiry = lazy(() => import('./pages/inventory/Expiry.jsx'));
 const Movements = lazy(() => import('./pages/inventory/Movements.jsx'));
+const Lab = lazy(() => import('./pages/Lab.jsx'));
+const LabLabels = lazy(() => import('./pages/LabLabels.jsx'));
 const Pharmacy = lazy(() => import('./pages/Pharmacy.jsx'));
 const Requisitions = lazy(() => import('./pages/inventory/Requisitions.jsx'));
 const StockTakes = lazy(() => import('./pages/inventory/StockTakes.jsx'));
@@ -224,6 +226,22 @@ function App() {
             element={
               <Protected perm="billing.read">
                 <Receipt />
+              </Protected>
+            }
+          />
+          <Route
+            path="lab"
+            element={
+              <Protected perm="lab.read">
+                <Lab />
+              </Protected>
+            }
+          />
+          <Route
+            path="lab/labels"
+            element={
+              <Protected perm={['lab.samples.collect', 'lab.read']}>
+                <LabLabels />
               </Protected>
             }
           />

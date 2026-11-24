@@ -33,6 +33,13 @@ const WORK = [
     icon: 'M7 3h10v18l-2.5-2-2.5 2-2.5-2L7 21zM10 8h4M10 12h4',
   },
   {
+    to: '/lab',
+    perm: 'lab.read',
+    title: 'Laboratory',
+    body: 'Collect, receive, result and verify tests.',
+    icon: 'M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3M7 15h10',
+  },
+  {
     to: '/pharmacy',
     perm: 'pharmacy.read',
     title: 'Pharmacy',

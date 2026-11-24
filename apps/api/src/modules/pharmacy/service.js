@@ -6,14 +6,14 @@ import '../../lib/db-types.js';
 // The pharmacy dispenses from a dispensing store: first-expiry-first-out batches, partial supply
 // and substitution (with a reason, and the allergy check re-run for the substitute). Each
 // dispensation's stock movement and bill line commit in one transaction.
-import { ageParts, fromMilli, hasPermission, suggestQuantity, todayNairobi, toMilli } from '@afyazuri/shared';
-import { AppError, badRequest, conflict, forbidden, notFound } from '../../lib/errors.js';
+import { ageParts, fromMilli, suggestQuantity, todayNairobi, toMilli } from '@afyazuri/shared';
+import { AppError, badRequest, conflict, notFound } from '../../lib/errors.js';
 import { nextDocNumber } from '../../lib/sequences.js';
 import { recordAudit } from '../audit/service.js';
 import { postCharge } from '../billing/service.js';
 import { storeFor } from '../inventory/service.js';
 import { allocateFefo, moveStock } from '../inventory/stock.js';
-import { assertClinicalAccess } from '../patients/access.js';
+import { assertClinicalAccess, assertServiceAccess } from '../patients/access.js';
 import { runChecks } from './checks.js';
 
 /**
@@ -30,31 +30,7 @@ const facilityOf = (auth) => {
 const q3 = (v) => fromMilli(toMilli(v ?? 0));
 const fullName = (p) => [p.first_name, p.middle_name, p.last_name].filter(Boolean).join(' ');
 
-/**
- * Pharmacy staff see prescriptions (and the allergies that matter for them) with pharmacy.read;
- * clinicians with emr.read. A restricted patient still needs an active break-the-glass grant.
- */
-async function assertRxAccess(db, auth, patient) {
-  const scope = { facilityId: auth.facilityId };
-  if (hasPermission(auth.grants, 'emr.read', scope)) return assertClinicalAccess(db, auth, patient);
-  if (!hasPermission(auth.grants, 'pharmacy.read', scope))
-    throw forbidden('Your role does not include prescriptions', { required: ['pharmacy.read'] });
-  if (patient.is_restricted) {
-    const grant = await db('break_glass_access')
-      .where({ user_id: auth.userId, patient_id: patient.id })
-      .andWhere('expires_at', '>', db.fn.now())
-      .first('id');
-    if (!grant)
-      throw new AppError(
-        403,
-        'BREAK_GLASS_REQUIRED',
-        'This record is restricted. Emergency access requires a reason.',
-        {
-          patientId: patient.id,
-        },
-      );
-  }
-}
+const assertRxAccess = (db, auth, patient) => assertServiceAccess(db, auth, patient, 'pharmacy.read');
 
 /** Active drug items of this facility, shaped for the checks and quantity helpers. */
 async function loadDrugs(db, facilityId, ids) {

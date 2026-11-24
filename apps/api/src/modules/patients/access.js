@@ -48,3 +48,34 @@ export async function assertClinicalAccess(db, auth, patient) {
     );
   return a;
 }
+
+/**
+ * Throw unless the user may see this patient for a service department's work: `perm` (e.g.
+ * pharmacy.read, lab.read) or emr.read. A restricted record still needs break-the-glass.
+ * @param {import('knex').Knex} db
+ * @param {import('../../middleware/auth.js').AuthContext} auth
+ * @param {{id: string, is_restricted: boolean}} patient
+ * @param {string} perm
+ */
+export async function assertServiceAccess(db, auth, patient, perm) {
+  const scope = { facilityId: auth.facilityId };
+  if (hasPermission(auth.grants, 'emr.read', scope)) return assertClinicalAccess(db, auth, patient);
+  if (!hasPermission(auth.grants, perm, scope))
+    throw forbidden('Your role does not include this patient information', { required: [perm] });
+  if (patient.is_restricted) {
+    const grant = await db('break_glass_access')
+      .where({ user_id: auth.userId, patient_id: patient.id })
+      .andWhere('expires_at', '>', db.fn.now())
+      .first('id');
+    if (!grant)
+      throw new AppError(
+        403,
+        'BREAK_GLASS_REQUIRED',
+        'This record is restricted. Emergency access requires a reason.',
+        {
+          patientId: patient.id,
+        },
+      );
+  }
+  return null;
+}

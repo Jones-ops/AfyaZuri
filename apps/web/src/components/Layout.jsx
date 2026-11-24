@@ -18,6 +18,7 @@ const NAV = [
     perm: ['billing.waiver.approve', 'billing.refund.approve', 'billing.payment.receive'],
   },
   { to: '/billing/setup', key: 'billingSetup', perm: 'billing.pricelist.manage' },
+  { to: '/lab', key: 'lab', perm: 'lab.read' },
   { to: '/pharmacy', key: 'pharmacy', perm: 'pharmacy.read' },
   { to: '/inventory', key: 'stock', perm: 'inventory.read' },
   { to: '/reports/finance', key: 'financeReports', perm: 'reports.financial.read' },

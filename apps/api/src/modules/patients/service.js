@@ -35,6 +35,8 @@ export const PATIENT_LINKED_TABLES = [
   'break_glass_access',
   'bills',
   'prescriptions',
+  'lab_orders',
+  'lab_samples',
 ];
 
 const BREAK_GLASS_HOURS_DEFAULT = 4;
