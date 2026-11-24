@@ -189,3 +189,8 @@ export const LAB_RESULT_TYPES = ['numeric', 'text', 'options', 'culture'];
 export const LAB_PRIORITIES = ['routine', 'urgent', 'stat'];
 /** Life of an ordered test. Results become visible on the record only when 'verified'. */
 export const LAB_ITEM_STATUS = ['ordered', 'collected', 'received', 'resulted', 'verified', 'cancelled'];
+
+// ---- Imaging -----------------------------------------------------------------------------
+export const MODALITIES = ['xray', 'ultrasound', 'ct', 'mri', 'mammography', 'fluoroscopy', 'other'];
+/** ordered → scheduled → performed → reported → released (or cancelled before it is performed). */
+export const IMAGING_STATUS = ['ordered', 'scheduled', 'performed', 'reported', 'released', 'cancelled'];

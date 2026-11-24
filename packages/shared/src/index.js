@@ -19,3 +19,4 @@ export * from './schemas/pharmacy.js';
 export * from './schemas/lab.js';
 export * from './barcode.js';
 export * from './labFlags.js';
+export * from './schemas/imaging.js';

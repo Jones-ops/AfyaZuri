@@ -38,6 +38,7 @@ function refreshSession() {
  * @param {{headers?: Record<string, string>, retried?: boolean}} [opts]
  */
 async function request(method, path, body, opts = {}) {
+  const raw = typeof Blob !== 'undefined' && body instanceof Blob; // a file, sent as its bytes
   let res;
   try {
     res = await fetch(`${BASE}${path}`, {
@@ -45,10 +46,10 @@ async function request(method, path, body, opts = {}) {
       credentials: 'include',
       headers: {
         'X-Afyazuri-Client': '1',
-        ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+        ...(body !== undefined ? { 'Content-Type': raw ? 'application/octet-stream' : 'application/json' } : {}),
         ...opts.headers,
       },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body === undefined ? undefined : raw ? body : JSON.stringify(body),
     });
   } catch {
     throw new ApiError(0, { code: 'NETWORK', message: 'Cannot reach the server. Check your connection.' });
@@ -74,6 +75,8 @@ export const api = {
   put: (path, body = {}) => request('PUT', path, body),
   patch: (path, body = {}) => request('PATCH', path, body),
   delete: (path) => request('DELETE', path),
+  /** Upload a File as raw bytes; the server checks its type from the content. */
+  upload: (path, file) => request('POST', path, file, { headers: { 'X-File-Name': encodeURIComponent(file.name) } }),
 };
 
 /** Build a query string, skipping empty values. @param {Record<string, any>} params */

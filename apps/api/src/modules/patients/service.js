@@ -38,6 +38,7 @@ export const PATIENT_LINKED_TABLES = [
   'prescriptions',
   'lab_orders',
   'lab_samples',
+  'imaging_orders',
 ];
 
 const BREAK_GLASS_HOURS_DEFAULT = 4;

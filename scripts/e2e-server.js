@@ -19,6 +19,7 @@ const keys = {
 Object.assign(process.env, keys);
 
 const dataDir = mkdtempSync(join(tmpdir(), 'afyazuri-e2e-'));
+const attachmentsDir = mkdtempSync(join(tmpdir(), 'afyazuri-e2e-files-'));
 const pg = await startPostgres({ dataDir, port: 55433, password: 'postgres', database: 'afyazuri_e2e' });
 await migrateAndSeed(pg.url, { demo: true });
 
@@ -37,6 +38,7 @@ const api = spawn(process.execPath, [join(ROOT, 'apps/api/src/server.js')], {
     SMS_ENV: 'mock',
     SMS_BASE_URL: mocks.url,
     ETIMS_ENV: 'mock',
+    ATTACHMENTS_DIR: attachmentsDir,
     DATABASE_URL: pg.url,
     WEB_DIST: join(ROOT, 'apps/web/dist'),
     COOKIE_SECURE: 'false',
@@ -53,6 +55,7 @@ async function stop() {
   api.kill();
   await pg.stop();
   rmSync(dataDir, { recursive: true, force: true });
+  rmSync(attachmentsDir, { recursive: true, force: true });
   process.exit(0);
 }
 process.on('SIGINT', stop);

@@ -74,6 +74,10 @@ const schema = z.object({
   /** Optional comma-separated IPs allowed to call the M-Pesa callbacks (Safaricom publishes its ranges). */
   MPESA_CALLBACK_ALLOWED_IPS: z.string().default(''),
 
+  // ---- Attachments (encrypted at rest) ----
+  ATTACHMENTS_DIR: z.string().default('data/attachments'),
+  ATTACHMENT_MAX_MB: z.coerce.number().int().min(1).max(50).default(10),
+
   // ---- KRA eTIMS ----
   /** mock = in-process stand-in for KRA; off = documents are marked "not required". */
   ETIMS_ENV: z.enum(['mock', 'off']).default('mock'),
@@ -124,6 +128,7 @@ export function loadConfig(env = process.env) {
     TLS_CERT_FILE: fromRoot(c.TLS_CERT_FILE),
     TLS_KEY_FILE: fromRoot(c.TLS_KEY_FILE),
     BACKUP_DIR: fromRoot(c.BACKUP_DIR),
+    ATTACHMENTS_DIR: fromRoot(c.ATTACHMENTS_DIR),
     BACKUP_OFFSITE_DIR: fromRoot(c.BACKUP_OFFSITE_DIR),
     cookieSecure: c.COOKIE_SECURE ?? c.NODE_ENV === 'production',
     corsOrigins: c.CORS_ORIGINS.split(',')

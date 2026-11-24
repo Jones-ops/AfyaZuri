@@ -34,6 +34,25 @@ export class FieldCrypto {
   }
 
   /**
+   * Encrypt a whole file (attachments at rest). Layout: "AZF1" | iv(12) | tag(16) | ciphertext.
+   * @param {Buffer} data
+   */
+  encryptBuffer(data) {
+    const iv = randomBytes(12);
+    const cipher = createCipheriv('aes-256-gcm', this.key, iv);
+    const ct = Buffer.concat([cipher.update(data), cipher.final()]);
+    return Buffer.concat([Buffer.from('AZF1'), iv, cipher.getAuthTag(), ct]);
+  }
+
+  /** @param {Buffer} blob from encryptBuffer; throws if it was tampered with */
+  decryptBuffer(blob) {
+    if (blob.subarray(0, 4).toString() !== 'AZF1') throw new Error('Unknown file format');
+    const decipher = createDecipheriv('aes-256-gcm', this.key, blob.subarray(4, 16));
+    decipher.setAuthTag(blob.subarray(16, 32));
+    return Buffer.concat([decipher.update(blob.subarray(32)), decipher.final()]);
+  }
+
+  /**
    * Deterministic keyed hash for exact-match lookup of an encrypted value.
    * Values are normalised (trimmed, upper-cased, internal spaces/dashes removed)
    * and namespaced by type so equal strings of different kinds don't collide.

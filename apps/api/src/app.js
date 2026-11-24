@@ -23,6 +23,7 @@ import { DarajaAdapter } from './integrations/mpesa.js';
 import { AfricasTalkingAdapter } from './integrations/sms.js';
 import { registerSubscribers } from './modules/notifications/subscribers.js';
 import { emrRoutes } from './modules/emr/routes.js';
+import { imagingRoutes } from './modules/imaging/routes.js';
 import { labRoutes } from './modules/lab/routes.js';
 import { notificationRoutes } from './modules/notifications/routes.js';
 import { opdRoutes } from './modules/opd/routes.js';
@@ -137,6 +138,7 @@ export function createApp(deps) {
   api.use(inventoryRoutes(deps));
   api.use(pharmacyRoutes(deps));
   api.use(labRoutes(deps));
+  api.use(imagingRoutes(deps));
   api.use(notificationRoutes(deps));
   api.use((req) => {
     throw new AppError(404, 'NOT_FOUND', `No route for ${req.method} ${safeUrl(req.originalUrl)}`);

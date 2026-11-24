@@ -20,6 +20,7 @@ const NAV = [
   },
   { to: '/billing/setup', key: 'billingSetup', perm: 'billing.pricelist.manage' },
   { to: '/lab', key: 'lab', perm: 'lab.read' },
+  { to: '/imaging', key: 'imaging', perm: 'imaging.read' },
   { to: '/pharmacy', key: 'pharmacy', perm: 'pharmacy.read' },
   { to: '/inventory', key: 'stock', perm: 'inventory.read' },
   { to: '/reports/finance', key: 'financeReports', perm: 'reports.financial.read' },

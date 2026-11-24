@@ -40,6 +40,13 @@ const WORK = [
     icon: 'M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3M7 15h10',
   },
   {
+    to: '/imaging',
+    perm: 'imaging.read',
+    title: 'Imaging',
+    body: 'Book, perform, report and release studies.',
+    icon: 'M3 5h18v14H3zM8 10a2 2 0 1 0 0-.01M21 15l-5-5-9 9',
+  },
+  {
     to: '/pharmacy',
     perm: 'pharmacy.read',
     title: 'Pharmacy',
